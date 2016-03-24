@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:textAppearance="?android:attr/textAppearanceMedium"
+        android:text="Pick a line"
+        android:id="@+id/textView2"
+        android:textStyle="bold"
+        android:textColor="#4070da"
+        android:layout_alignParentTop="true"
+        android:layout_centerHorizontal="true"
+        android:layout_weight="1"
+        android:gravity="center" />
+
+    <Spinner
+        android:layout_width="wrap_content"
+        android:layout_height="0dp"
+        android:id="@+id/spinner"
+        android:layout_below="@+id/textView2"
+        android:layout_alignParentStart="false"
+        android:layout_gravity="bottom|center"
+        android:layout_weight="1"
+        android:gravity="center" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:textAppearance="?android:attr/textAppearanceMedium"
+        android:text="Start"
+        android:id="@+id/textView3"
+        android:textStyle="bold"
+        android:textColor="#4070da"
+        android:layout_below="@+id/spinner"
+        android:layout_alignEnd="@+id/textView4"
+        android:layout_weight="1"
+        android:gravity="center" />
+
+    <Spinner
+        android:layout_width="wrap_content"
+        android:layout_height="0dp"
+        android:id="@+id/spinner2"
+        android:clickable="false"
+        android:scrollIndicators="right"
+        android:visibility="visible"
+        android:transitionGroup="false"
+        android:layout_below="@+id/textView3"
+        android:layout_alignParentStart="false"
+        android:layout_alignParentEnd="true"
+        android:layout_weight="1"
+        android:gravity="center"
+        android:layout_gravity="center" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:textAppearance="?android:attr/textAppearanceMedium"
+        android:text="End"
+        android:id="@+id/textView4"
+        android:textStyle="bold"
+        android:textColor="#4070da"
+        android:layout_below="@+id/spinner2"
+        android:layout_centerHorizontal="true"
+        android:layout_weight="1"
+        android:gravity="center" />
+
+    <Spinner
+        android:layout_width="wrap_content"
+        android:layout_height="0dp"
+        android:id="@+id/spinner3"
+        android:layout_below="@+id/textView4"
+        android:layout_alignParentStart="false"
+        android:layout_weight="1"
+        android:gravity="center"
+        android:layout_gravity="center" />
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="0dp"
+        android:text="Request a shuttle"
+        android:id="@+id/go_button"
+        android:onClick="Myclick"
+        android:layout_below="@+id/spinner3"
+        android:layout_centerHorizontal="true"
+        android:layout_weight="1"
+        android:gravity="center"
+        android:layout_gravity="center" />
+
+</LinearLayout>

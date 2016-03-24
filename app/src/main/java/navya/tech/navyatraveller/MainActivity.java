@@ -63,7 +63,7 @@ public class MainActivity extends AppCompatActivity
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
+        // automatically handle clicks on the Home/Up mybutton, so long
         // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
 
@@ -88,6 +88,7 @@ public class MainActivity extends AppCompatActivity
             fm.beginTransaction().replace(R.id.content_frame, new GmapFragment()).commit();
 
         } else if (id == R.id.nav_go) {
+            fm.beginTransaction().replace(R.id.content_frame, new GoFragment()).commit();
 
         } else if (id == R.id.nav_manage) {
 
@@ -97,4 +98,5 @@ public class MainActivity extends AppCompatActivity
         drawer.closeDrawer(GravityCompat.START);
         return true;
     }
+
 }
