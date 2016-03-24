@@ -1,5 +1,6 @@
 package navya.tech.navyatraveller;
 
+import android.app.FragmentManager;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
@@ -77,12 +78,14 @@ public class MainActivity extends AppCompatActivity
     @SuppressWarnings("StatementWithEmptyBody")
     @Override
     public boolean onNavigationItemSelected(MenuItem item) {
+        FragmentManager fm = getFragmentManager();
         // Handle navigation view item clicks here.
         int id = item.getItemId();
 
         if (id == R.id.nav_camera) {
             // Handle the camera action
         } else if (id == R.id.nav_map) {
+            fm.beginTransaction().replace(R.id.content_frame, new GmapFragment()).commit();
 
         } else if (id == R.id.nav_go) {
 
