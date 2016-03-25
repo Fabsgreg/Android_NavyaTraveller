@@ -1,4 +1,4 @@
-package navya.tech.navyatraveller;
+package navya.tech.navyatraveller.Fragments;
 
 import android.app.Activity;
 import android.app.Fragment;
@@ -14,6 +14,8 @@ import android.widget.Button;
 import android.widget.ImageView;
 
 import java.io.ByteArrayOutputStream;
+
+import navya.tech.navyatraveller.R;
 
 /**
  * Created by gregoire.frezet on 25/03/2016.

@@ -14,6 +14,12 @@ import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
 
+import navya.tech.navyatraveller.Databases.MyDBHandler;
+import navya.tech.navyatraveller.Databases.Product;
+import navya.tech.navyatraveller.Fragments.GmapFragment;
+import navya.tech.navyatraveller.Fragments.GoFragment;
+import navya.tech.navyatraveller.Fragments.QRcodeFragment;
+
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
 
@@ -41,6 +47,40 @@ public class MainActivity extends AppCompatActivity
 
         NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
+
+
+        // Test DB
+
+        MyDBHandler dbHandler = new MyDBHandler(this, null, null, 1);
+        int quantity = 10;
+        Product product = new Product("Product1", quantity);
+        dbHandler.addProduct(product);
+
+        int test = 0;
+        int test2 = 0;
+        boolean test3 = false;
+
+        product = dbHandler.findProduct("Product1");
+        if (product != null) {
+            test = product.getID();
+            test2 = product.getQuantity();
+        }
+
+
+        test3 = dbHandler.deleteProduct("Product1");
+        test3 = dbHandler.deleteProduct("Product1");
+        test3 = dbHandler.deleteProduct("Product1");
+        test3 = dbHandler.deleteProduct("Product1");
+
+        product = dbHandler.findProduct("Product1");
+        if (product != null) {
+            test = product.getID();
+            test2 = product.getQuantity();
+        }
+        else{
+            int a = 1;
+        }
+
     }
 
     @Override

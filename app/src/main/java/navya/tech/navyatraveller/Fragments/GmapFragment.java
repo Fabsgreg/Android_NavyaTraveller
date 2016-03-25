@@ -1,4 +1,4 @@
-package navya.tech.navyatraveller;
+package navya.tech.navyatraveller.Fragments;
 
 import android.app.Fragment;
 import android.os.Bundle;
@@ -13,6 +13,8 @@ import com.google.android.gms.maps.MapFragment;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
+
+import navya.tech.navyatraveller.R;
 
 /**
  * Created by gregoire.frezet on 24/03/2016.

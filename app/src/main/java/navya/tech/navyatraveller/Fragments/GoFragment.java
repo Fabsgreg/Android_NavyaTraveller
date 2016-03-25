@@ -1,4 +1,4 @@
-package navya.tech.navyatraveller;
+package navya.tech.navyatraveller.Fragments;
 
 
 import android.app.Fragment;
@@ -17,6 +17,8 @@ import android.widget.Spinner;
 import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
 import java.util.List;
+
+import navya.tech.navyatraveller.R;
 
 /**
  * Created by gregoire.frezet on 24/03/2016.
