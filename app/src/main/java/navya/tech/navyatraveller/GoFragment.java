@@ -1,8 +1,11 @@
 package navya.tech.navyatraveller;
 
+
 import android.app.Fragment;
-import android.app.FragmentTransaction;
+import android.content.Context;
+import android.content.DialogInterface;
 import android.os.Bundle;
+import android.support.v7.app.AlertDialog;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -11,6 +14,7 @@ import android.widget.Button;
 import android.widget.Spinner;
 
 
+import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -27,7 +31,7 @@ public class GoFragment extends Fragment implements View.OnClickListener {
         View v = inflater.inflate(R.layout.go_fragment, container, false);
 
         String [] values =
-                {"Time at Residence","Under 6 months","6-12 months","1-2 years","2-4 years","4-8 years","8-15 years","Over 15 years",};
+                {"Line 1","Line 2","Line 3","Line 4","Line 5","Line 6","Line 7","Line 8",};
         Spinner spinner = (Spinner) v.findViewById(R.id.spinner);
         ArrayAdapter<String> LTRadapter = new ArrayAdapter<String>(this.getActivity(), android.R.layout.simple_spinner_item, values);
         LTRadapter.setDropDownViewResource(android.R.layout.simple_dropdown_item_1line);
@@ -47,6 +51,9 @@ public class GoFragment extends Fragment implements View.OnClickListener {
 
     public void MyClick(View v) {
         switch(v.getId()) {
+            case R.id.go_button:
+                int a = 1;
+                break;
             // Just like you were doing
         }
     }
@@ -58,13 +65,27 @@ public class GoFragment extends Fragment implements View.OnClickListener {
 
         if (v.getId() == R.id.go_button)
         {
-            int tt = 1;
-            FragmentTransaction t = this.getFragmentManager().beginTransaction();
-            Fragment mFrag = new ToolFragment();
-            t.replace(R.id.content_frame, mFrag, "ToolFragment");
-            t.commit();
-        }
+            //int tt = 1;
+            //FragmentTransaction t = this.getFragmentManager().beginTransaction();
+            //Fragment mFrag = new ToolFragment();
+            //t.replace(R.id.content_frame, mFrag, "ToolFragment");
+            //t.commit();
 
+
+            Context context = getActivity();
+            AlertDialog ad = new AlertDialog.Builder(context)
+                    .create();
+            ad.setCancelable(false);
+            ad.setTitle("Title");
+            ad.setMessage("Message");
+            ad.setButton(-1, "but", new DialogInterface.OnClickListener() {
+
+                public void onClick(DialogInterface dialog, int which) {
+                    dialog.dismiss();
+                }
+            });
+            ad.show();
+        }
     }
 
 }

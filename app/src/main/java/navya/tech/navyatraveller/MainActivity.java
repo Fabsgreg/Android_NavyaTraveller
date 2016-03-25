@@ -83,7 +83,7 @@ public class MainActivity extends AppCompatActivity
         int id = item.getItemId();
 
         if (id == R.id.nav_camera) {
-            // Handle the camera action
+            fm.beginTransaction().replace(R.id.content_frame, new QRcodeFragment()).commit();
         } else if (id == R.id.nav_map) {
             fm.beginTransaction().replace(R.id.content_frame, new GmapFragment()).commit();
 
