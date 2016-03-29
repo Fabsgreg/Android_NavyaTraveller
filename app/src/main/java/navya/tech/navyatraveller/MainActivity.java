@@ -14,14 +14,24 @@ import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import navya.tech.navyatraveller.Databases.Line;
+import navya.tech.navyatraveller.Databases.LineDAO;
 import navya.tech.navyatraveller.Databases.MyDBHandler;
+import navya.tech.navyatraveller.Databases.MyDBHandler2;
 import navya.tech.navyatraveller.Databases.Product;
+import navya.tech.navyatraveller.Databases.Station;
+import navya.tech.navyatraveller.Databases.StationDAO;
 import navya.tech.navyatraveller.Fragments.GmapFragment;
 import navya.tech.navyatraveller.Fragments.GoFragment;
 import navya.tech.navyatraveller.Fragments.QRcodeFragment;
 
-public class MainActivity extends AppCompatActivity
-        implements NavigationView.OnNavigationItemSelectedListener {
+public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
+
+    LineDAO _lineDAO;
+    StationDAO _stationDAO;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -51,7 +61,7 @@ public class MainActivity extends AppCompatActivity
 
         // Test DB
 
-        MyDBHandler dbHandler = new MyDBHandler(this, null, null, 1);
+/*        MyDBHandler2 dbHandler = new MyDBHandler2(this, null, null, 1);
         int quantity = 10;
         Product product = new Product("Product1", quantity);
         dbHandler.addProduct(product);
@@ -79,7 +89,16 @@ public class MainActivity extends AppCompatActivity
         }
         else{
             int a = 1;
-        }
+        }*/
+
+
+        // Trst DB advanced
+
+        //MyDBHandler dbHandler2 = new MyDBHandler(this, null, null, 1);
+
+        this._lineDAO = new LineDAO(this);
+        //this._stationDAO = new StationDAO(this);
+
 
     }
 
@@ -131,6 +150,18 @@ public class MainActivity extends AppCompatActivity
             fm.beginTransaction().replace(R.id.content_frame, new GoFragment()).commit();
 
         } else if (id == R.id.nav_manage) {
+
+            Line createdLine = _lineDAO.createLine("line1");
+
+
+            Station createdStation1 = _stationDAO.createStation("station1", "line1");
+            Station createdStation2 = _stationDAO.createStation("station2", "line1");
+
+            List<Station> myList = new ArrayList<Station>();
+
+            myList =  _stationDAO.getStationsOfLine("line1");
+
+            int toto = 1;
 
         }
 

@@ -1,98 +1,64 @@
 package navya.tech.navyatraveller.Databases;
 
-/**
- * Created by gregoire.frezet on 25/03/2016.
- */
-import android.content.ContentValues;
 import android.content.Context;
-import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 
+/**
+ * Created by gregoire.frezet on 25/03/2016.
+ */
 public class MyDBHandler extends SQLiteOpenHelper {
 
+    // columns of the line table
+    public static final String TABLE_LINES = "lines";
+    public static final String COLUMN_LINE_ID = "_id";
+    public static final String COLUMN_LINE_NAME = "line_name";
+
+    // columns of the station table
+    public static final String TABLE_STATIONS = "stations";
+    public static final String COLUMN_STATION_ID = "_id";
+    public static final String COLUMN_STATION_NAME = "station_name";
+    public static final String COLUMN_STATION_LINE_NAME = "line_name";
+
+    private static final String DATABASE_NAME = "NavyaLines.db";
     private static final int DATABASE_VERSION = 1;
-    private static final String DATABASE_NAME = "productDB.db";
-    public static final String TABLE_PRODUCTS = "products";
 
-    public static final String COLUMN_ID = "_id";
-    public static final String COLUMN_PRODUCTNAME = "productname";
-    public static final String COLUMN_QUANTITY = "quantity";
+    // SQL statement of the employees table creation
+    private static final String SQL_CREATE_TABLE_LINES = "CREATE TABLE " + TABLE_LINES + "("
+            + COLUMN_LINE_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
+            + COLUMN_LINE_NAME + " TEXT NOT NULL "
+            +");";
 
-    public MyDBHandler(Context context, String name,
-                       SQLiteDatabase.CursorFactory factory, int version) {
-        super(context, DATABASE_NAME, factory, DATABASE_VERSION);
+    // SQL statement of the companies table creation
+    private static final String SQL_CREATE_TABLE_STATIONS = "CREATE TABLE " + TABLE_STATIONS + "("
+            + COLUMN_STATION_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
+            + COLUMN_STATION_NAME + " TEXT NOT NULL, "
+            + COLUMN_STATION_LINE_NAME + " TEXT NOT NULL "
+            +");";
+
+    public MyDBHandler(Context context) {
+        super(context, DATABASE_NAME, null, DATABASE_VERSION);
     }
 
     @Override
-    public void onCreate(SQLiteDatabase db) {
-        String CREATE_PRODUCTS_TABLE = "CREATE TABLE " +
-                TABLE_PRODUCTS + "("
-                + COLUMN_ID + " INTEGER PRIMARY KEY," + COLUMN_PRODUCTNAME
-                + " TEXT," + COLUMN_QUANTITY + " INTEGER" + ")";
-        db.execSQL(CREATE_PRODUCTS_TABLE);
+    public void onCreate(SQLiteDatabase database) {
+        database.execSQL(SQL_CREATE_TABLE_LINES);
+        database.execSQL(SQL_CREATE_TABLE_STATIONS);
     }
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-        db.execSQL("DROP TABLE IF EXISTS " + TABLE_PRODUCTS);
+        // clear all data
+        db.execSQL("DROP TABLE IF EXISTS " + TABLE_LINES);
+        db.execSQL("DROP TABLE IF EXISTS " + TABLE_STATIONS);
+
+        // recreate the tables
         onCreate(db);
     }
 
-    public void addProduct(Product product) {
-
-        ContentValues values = new ContentValues();
-        values.put(COLUMN_PRODUCTNAME, product.getProductName());
-        values.put(COLUMN_QUANTITY, product.getQuantity());
-
-        SQLiteDatabase db = this.getWritableDatabase();
-
-        db.insert(TABLE_PRODUCTS, null, values);
-        db.close();
+    public MyDBHandler(Context context, String name, SQLiteDatabase.CursorFactory factory, int version) {
+        super(context, DATABASE_NAME, factory, DATABASE_VERSION);
     }
 
-    public Product findProduct(String productname) {
-        String query = "Select * FROM " + TABLE_PRODUCTS + " WHERE " + COLUMN_PRODUCTNAME + " =  \"" + productname + "\"";
 
-        SQLiteDatabase db = this.getWritableDatabase();
-
-        Cursor cursor = db.rawQuery(query, null);
-
-        Product product = new Product();
-
-        if (cursor.moveToFirst()) {
-            cursor.moveToFirst();
-            product.setID(Integer.parseInt(cursor.getString(0)));
-            product.setProductName(cursor.getString(1));
-            product.setQuantity(Integer.parseInt(cursor.getString(2)));
-            cursor.close();
-        } else {
-            product = null;
-        }
-        db.close();
-        return product;
-    }
-
-    public boolean deleteProduct(String productname) {
-
-        boolean result = false;
-
-        String query = "Select * FROM " + TABLE_PRODUCTS + " WHERE " + COLUMN_PRODUCTNAME + " =  \"" + productname + "\"";
-
-        SQLiteDatabase db = this.getWritableDatabase();
-
-        Cursor cursor = db.rawQuery(query, null);
-
-        Product product = new Product();
-
-        if (cursor.moveToFirst()) {
-            product.setID(Integer.parseInt(cursor.getString(0)));
-            db.delete(TABLE_PRODUCTS, COLUMN_ID + " = ?",
-                    new String[] { String.valueOf(product.getID()) });
-            cursor.close();
-            result = true;
-        }
-        db.close();
-        return result;
-    }
 }
