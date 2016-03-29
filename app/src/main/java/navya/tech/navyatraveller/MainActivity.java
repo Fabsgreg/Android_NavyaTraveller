@@ -18,20 +18,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 import navya.tech.navyatraveller.Databases.Line;
-import navya.tech.navyatraveller.Databases.LineDAO;
 import navya.tech.navyatraveller.Databases.MyDBHandler;
-import navya.tech.navyatraveller.Databases.MyDBHandler2;
-import navya.tech.navyatraveller.Databases.Product;
 import navya.tech.navyatraveller.Databases.Station;
-import navya.tech.navyatraveller.Databases.StationDAO;
 import navya.tech.navyatraveller.Fragments.GmapFragment;
 import navya.tech.navyatraveller.Fragments.GoFragment;
 import navya.tech.navyatraveller.Fragments.QRcodeFragment;
 
 public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
-
-    LineDAO _lineDAO;
-    StationDAO _stationDAO;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -59,47 +52,22 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         navigationView.setNavigationItemSelectedListener(this);
 
 
-        // Test DB
 
-/*        MyDBHandler2 dbHandler = new MyDBHandler2(this, null, null, 1);
-        int quantity = 10;
-        Product product = new Product("Product1", quantity);
-        dbHandler.addProduct(product);
+        MyDBHandler mDBHandler = new MyDBHandler(this);
+        
+        mDBHandler.Reset();
+        mDBHandler.createLine("Line1");
+        mDBHandler.createStation("Station1", "Line1");
+        mDBHandler.createStation("Station2", "Line1");
 
-        int test = 0;
-        int test2 = 0;
-        boolean test3 = false;
+        mDBHandler.createLine("Line2");
+        mDBHandler.createStation("Station3", "Line2");
+        mDBHandler.createStation("Station4", "Line2");
 
-        product = dbHandler.findProduct("Product1");
-        if (product != null) {
-            test = product.getID();
-            test2 = product.getQuantity();
-        }
+        List<Station> myStations = new ArrayList<Station>();
+        myStations = mDBHandler.getStationsOfLine("Line2");
 
-
-        test3 = dbHandler.deleteProduct("Product1");
-        test3 = dbHandler.deleteProduct("Product1");
-        test3 = dbHandler.deleteProduct("Product1");
-        test3 = dbHandler.deleteProduct("Product1");
-
-        product = dbHandler.findProduct("Product1");
-        if (product != null) {
-            test = product.getID();
-            test2 = product.getQuantity();
-        }
-        else{
-            int a = 1;
-        }*/
-
-
-        // Trst DB advanced
-
-        //MyDBHandler dbHandler2 = new MyDBHandler(this, null, null, 1);
-
-        this._lineDAO = new LineDAO(this);
-        //this._stationDAO = new StationDAO(this);
-
-
+        int a;
     }
 
     @Override
@@ -150,18 +118,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             fm.beginTransaction().replace(R.id.content_frame, new GoFragment()).commit();
 
         } else if (id == R.id.nav_manage) {
-
-            Line createdLine = _lineDAO.createLine("line1");
-
-
-            Station createdStation1 = _stationDAO.createStation("station1", "line1");
-            Station createdStation2 = _stationDAO.createStation("station2", "line1");
-
-            List<Station> myList = new ArrayList<Station>();
-
-            myList =  _stationDAO.getStationsOfLine("line1");
-
-            int toto = 1;
 
         }
 

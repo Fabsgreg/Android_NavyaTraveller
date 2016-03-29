@@ -29,7 +29,7 @@ public class Station implements Serializable {
         return _name;
     }
 
-    public void setSationName(String _name) {
+    public void setStationName(String _name) {
         this._name = _name;
     }
 
