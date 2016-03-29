@@ -26,6 +26,8 @@ import navya.tech.navyatraveller.Fragments.QRcodeFragment;
 
 public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
 
+    private MyDBHandler mDBHandler;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -52,22 +54,22 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         navigationView.setNavigationItemSelectedListener(this);
 
 
-
-        MyDBHandler mDBHandler = new MyDBHandler(this);
-        
+        mDBHandler = new MyDBHandler(this);
         mDBHandler.Reset();
         mDBHandler.createLine("Line1");
         mDBHandler.createStation("Station1", "Line1");
         mDBHandler.createStation("Station2", "Line1");
+        mDBHandler.createStation("Station3", "Line1");
+        //mDBHandler.createStation("Station4", "Line1");
+        //mDBHandler.createStation("Station5", "Line1");
 
         mDBHandler.createLine("Line2");
-        mDBHandler.createStation("Station3", "Line2");
-        mDBHandler.createStation("Station4", "Line2");
+        mDBHandler.createStation("StationA", "Line2");
+        mDBHandler.createStation("StationB", "Line2");
+        mDBHandler.createStation("StationC", "Line2");
+        mDBHandler.createStation("StationD", "Line2");
+        mDBHandler.createStation("StationE", "Line2");
 
-        List<Station> myStations = new ArrayList<Station>();
-        myStations = mDBHandler.getStationsOfLine("Line2");
-
-        int a;
     }
 
     @Override

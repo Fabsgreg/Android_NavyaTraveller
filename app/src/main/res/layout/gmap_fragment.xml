@@ -2,9 +2,14 @@
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent" android:layout_height="match_parent">
 
-    <fragment android:id="@+id/map"
+    <!--<fragment android:id="@+id/map"
         android:layout_width="fill_parent"
         android:layout_height="fill_parent"
-        class="com.google.android.gms.maps.MapFragment"></fragment>
+        class="com.google.android.gms.maps.MapFragment"></fragment>-->
+
+    <com.google.android.gms.maps.MapView
+        android:id="@+id/map"
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent" />
 
 </FrameLayout>
