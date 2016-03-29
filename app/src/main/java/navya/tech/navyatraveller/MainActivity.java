@@ -1,5 +1,6 @@
 package navya.tech.navyatraveller;
 
+import android.app.FragmentManager;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
@@ -13,8 +14,17 @@ import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
 
-public class MainActivity extends AppCompatActivity
-        implements NavigationView.OnNavigationItemSelectedListener {
+import java.util.ArrayList;
+import java.util.List;
+
+import navya.tech.navyatraveller.Databases.Line;
+import navya.tech.navyatraveller.Databases.MyDBHandler;
+import navya.tech.navyatraveller.Databases.Station;
+import navya.tech.navyatraveller.Fragments.GmapFragment;
+import navya.tech.navyatraveller.Fragments.GoFragment;
+import navya.tech.navyatraveller.Fragments.QRcodeFragment;
+
+public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -40,6 +50,24 @@ public class MainActivity extends AppCompatActivity
 
         NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
+
+
+
+        MyDBHandler mDBHandler = new MyDBHandler(this);
+        
+        mDBHandler.Reset();
+        mDBHandler.createLine("Line1");
+        mDBHandler.createStation("Station1", "Line1");
+        mDBHandler.createStation("Station2", "Line1");
+
+        mDBHandler.createLine("Line2");
+        mDBHandler.createStation("Station3", "Line2");
+        mDBHandler.createStation("Station4", "Line2");
+
+        List<Station> myStations = new ArrayList<Station>();
+        myStations = mDBHandler.getStationsOfLine("Line2");
+
+        int a;
     }
 
     @Override
@@ -62,7 +90,7 @@ public class MainActivity extends AppCompatActivity
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
+        // automatically handle clicks on the Home/Up mybutton, so long
         // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
 
@@ -77,20 +105,19 @@ public class MainActivity extends AppCompatActivity
     @SuppressWarnings("StatementWithEmptyBody")
     @Override
     public boolean onNavigationItemSelected(MenuItem item) {
+        FragmentManager fm = getFragmentManager();
         // Handle navigation view item clicks here.
         int id = item.getItemId();
 
         if (id == R.id.nav_camera) {
-            // Handle the camera action
-        } else if (id == R.id.nav_gallery) {
+            fm.beginTransaction().replace(R.id.content_frame, new QRcodeFragment()).commit();
+        } else if (id == R.id.nav_map) {
+            fm.beginTransaction().replace(R.id.content_frame, new GmapFragment()).commit();
 
-        } else if (id == R.id.nav_slideshow) {
+        } else if (id == R.id.nav_go) {
+            fm.beginTransaction().replace(R.id.content_frame, new GoFragment()).commit();
 
         } else if (id == R.id.nav_manage) {
-
-        } else if (id == R.id.nav_share) {
-
-        } else if (id == R.id.nav_send) {
 
         }
 
@@ -98,4 +125,5 @@ public class MainActivity extends AppCompatActivity
         drawer.closeDrawer(GravityCompat.START);
         return true;
     }
+
 }
