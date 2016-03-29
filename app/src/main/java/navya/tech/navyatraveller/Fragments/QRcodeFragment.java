@@ -12,6 +12,10 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.TextView;
+
+import com.google.zxing.integration.android.IntentIntegrator;
+import com.google.zxing.integration.android.IntentResult;
 
 import java.io.ByteArrayOutputStream;
 
@@ -25,23 +29,25 @@ public class QRcodeFragment extends Fragment {
     private static final int CAPTURE_IMAGE_ACTIVITY_REQUEST_CODE = 1888;
     Button button;
     ImageView imageView;
+    TextView scan_content;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
 
         View v = inflater.inflate(R.layout.tool_fragment, container, false);
 
-        Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-        startActivityForResult(intent, CAPTURE_IMAGE_ACTIVITY_REQUEST_CODE);
+        //Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        //startActivityForResult(intent, CAPTURE_IMAGE_ACTIVITY_REQUEST_CODE);
 
-
+        scan_content = (TextView) v.findViewById(R.id.textView5);
+        IntentIntegrator.forFragment(this).initiateScan();
         return v;
     }
 
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == CAPTURE_IMAGE_ACTIVITY_REQUEST_CODE) {
+/*        if (requestCode == CAPTURE_IMAGE_ACTIVITY_REQUEST_CODE) {
             if (resultCode == Activity.RESULT_OK) {
 
                 Bitmap bmp = (Bitmap) data.getExtras().get("data");
@@ -58,6 +64,21 @@ public class QRcodeFragment extends Fragment {
                 imageView.setImageBitmap(bitmap);
 
             }
+        }*/
+
+        IntentResult scanningResult = IntentIntegrator.parseActivityResult(requestCode, resultCode, data);
+        if (scanningResult != null) {
+
+            // nous récupérons le contenu du code barre
+            String scanContent = scanningResult.getContents();
+
+            // nous récupérons le format du code barre
+            String scanFormat = scanningResult.getFormatName();
+
+
+            scan_content.setText(scanContent);
+
+            int a;
         }
     }
 
