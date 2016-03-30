@@ -23,7 +23,11 @@ android {
 }
 
 repositories {
+    // QRCode lib
     jcenter()
+
+    // Sliding Up lib
+    mavenCentral()
 }
 
 dependencies {
@@ -33,6 +37,10 @@ dependencies {
     compile 'com.android.support:design:23.2.1'
     compile 'com.google.android.gms:play-services:8.4.0'
 
+    // QRCode lib
     compile 'com.journeyapps:zxing-android-embedded:3.0.2@aar'
     compile 'com.google.zxing:core:3.2.0'
+
+    // Sliding Up lib
+    compile 'com.sothree.slidinguppanel:library:3.3.0'
 }

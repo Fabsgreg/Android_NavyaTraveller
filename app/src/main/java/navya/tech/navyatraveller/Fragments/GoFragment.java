@@ -103,8 +103,7 @@ public class GoFragment extends Fragment implements View.OnClickListener, Adapte
     public void onClick(View v) {
         //do what you want to do when mybutton is clicked
 
-        if (v.getId() == R.id.go_button)
-        {
+        if (v.getId() == R.id.go_button) {
             //int tt = 1;
             //FragmentTransaction t = this.getFragmentManager().beginTransaction();
             //Fragment mFrag = new ToolFragment();

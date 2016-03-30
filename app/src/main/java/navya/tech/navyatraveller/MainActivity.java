@@ -35,15 +35,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
-            }
-        });
-
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
                 this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
@@ -57,18 +48,16 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         mDBHandler = new MyDBHandler(this);
         mDBHandler.Reset();
         mDBHandler.createLine("Line1");
-        mDBHandler.createStation("Station1", "Line1");
-        mDBHandler.createStation("Station2", "Line1");
-        mDBHandler.createStation("Station3", "Line1");
-        //mDBHandler.createStation("Station4", "Line1");
-        //mDBHandler.createStation("Station5", "Line1");
+        mDBHandler.createStation("Station1", (float)48.890354, (float)2.353866, "Line1");
+        mDBHandler.createStation("Station2", (float)48.888657, (float)2.355598, "Line1");
+        mDBHandler.createStation("Station3", (float)48.889298, (float)2.351637, "Line1");
 
         mDBHandler.createLine("Line2");
-        mDBHandler.createStation("StationA", "Line2");
-        mDBHandler.createStation("StationB", "Line2");
-        mDBHandler.createStation("StationC", "Line2");
-        mDBHandler.createStation("StationD", "Line2");
-        mDBHandler.createStation("StationE", "Line2");
+        mDBHandler.createStation("StationA", (float)48.893595, (float)2.354017, "Line2");
+        mDBHandler.createStation("StationB", (float)48.894778, (float)2.352902, "Line2");
+        mDBHandler.createStation("StationC", (float)48.894535, (float)2.351229, "Line2");
+        mDBHandler.createStation("StationD", (float)48.893781, (float)2.351301, "Line2");
+        mDBHandler.createStation("StationE", (float)48.893425, (float)2.352704, "Line2");
 
     }
 

@@ -26,6 +26,8 @@ public class MyDBHandler extends SQLiteOpenHelper {
     public static final String TABLE_STATIONS = "stations";
     public static final String COLUMN_STATION_ID = "_id";
     public static final String COLUMN_STATION_NAME = "station_name";
+    public static final String COLUMN_STATION_LAT = "station_lat";
+    public static final String COLUMN_STATION_LNG = "station_lng";
     public static final String COLUMN_STATION_LINE_NAME = "line_name";
 
     private static final String DATABASE_NAME = "NavyaLines.db";
@@ -41,11 +43,13 @@ public class MyDBHandler extends SQLiteOpenHelper {
     private static final String SQL_CREATE_TABLE_STATIONS = "CREATE TABLE " + TABLE_STATIONS + "("
             + COLUMN_STATION_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
             + COLUMN_STATION_NAME + " TEXT NOT NULL, "
+            + COLUMN_STATION_LAT + " REAL NOT NULL, "
+            + COLUMN_STATION_LNG + " REAL NOT NULL, "
             + COLUMN_STATION_LINE_NAME + " TEXT NOT NULL "
             +");";
 
     private String[] _AllColumnsLine = { COLUMN_LINE_ID, COLUMN_LINE_NAME };
-    private String[] _AllColumnsStation = {COLUMN_STATION_ID, COLUMN_STATION_NAME, COLUMN_STATION_LINE_NAME};
+    private String[] _AllColumnsStation = {COLUMN_STATION_ID, COLUMN_STATION_NAME, COLUMN_STATION_LAT, COLUMN_STATION_LNG, COLUMN_STATION_LINE_NAME};
 
 
 
@@ -157,10 +161,12 @@ public class MyDBHandler extends SQLiteOpenHelper {
 
     /////// Station //////////
 
-    public Station createStation(String stationName, String lineName) {
+    public Station createStation(String stationName, float stationLat, float stationLng, String lineName) {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues values = new ContentValues();
         values.put(COLUMN_STATION_NAME, stationName);
+        values.put(COLUMN_STATION_LAT, stationLat);
+        values.put(COLUMN_STATION_LNG, stationLng);
         values.put(COLUMN_STATION_LINE_NAME, lineName);
 
         long insertId = db.insert(TABLE_STATIONS, null, values);
@@ -221,10 +227,12 @@ public class MyDBHandler extends SQLiteOpenHelper {
         Station station = new Station();
         station.setId(cursor.getInt(0));
         station.setStationName(cursor.getString(1));
+        station.setLat(cursor.getFloat(2));
+        station.setLng(cursor.getFloat(3));
 
 
         // get The line by name
-        String lineName = cursor.getString(2);
+        String lineName = cursor.getString(4);
 
         Line line = this.getLineByName(lineName);
         if (line != null)
