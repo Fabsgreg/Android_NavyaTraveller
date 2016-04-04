@@ -2,6 +2,7 @@ package navya.tech.navyatraveller.Fragments;
 
 import android.app.Fragment;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.graphics.Color;
 import android.location.Criteria;
 import android.location.Location;
@@ -10,11 +11,15 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.support.design.widget.FloatingActionButton;
+import android.support.design.widget.Snackbar;
+import android.support.v7.app.AlertDialog;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.TextView;
 
 
 import com.google.android.gms.maps.CameraUpdate;
@@ -24,6 +29,7 @@ import com.google.android.gms.maps.MapView;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.PolylineOptions;
 import com.sothree.slidinguppanel.SlidingUpPanelLayout;
@@ -44,7 +50,7 @@ import navya.tech.navyatraveller.R;
 /**
  * Created by gregoire.frezet on 24/03/2016.
  */
-public class GmapFragment extends Fragment implements OnMapReadyCallback, LocationListener, View.OnClickListener {
+public class GmapFragment extends Fragment implements OnMapReadyCallback, LocationListener, View.OnClickListener, GoogleMap.OnMarkerClickListener {
 
     private MapView mMapView;
     private GoogleMap mGoogleMap;
@@ -57,10 +63,18 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
     private Button startBouton;
     private Button endBouton;
 
+    private FloatingActionButton fab;
+
+    private TextView result;
+
+    private saveResult mSaveResult;
+
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View v = inflater.inflate(R.layout.gmap_fragment, container, false);
+
+        mSaveResult = new saveResult();
 
         mMapView = (MapView) v.findViewById(R.id.map);
         mMapView.onCreate(savedInstanceState);
@@ -83,6 +97,11 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
         endBouton = (Button) v.findViewById(R.id.end_button);
         endBouton.setOnClickListener(this);
 
+        result = (TextView) v.findViewById(R.id.result_textView);
+
+        fab = (FloatingActionButton) v.findViewById(R.id.fab);
+        fab.setOnClickListener(this);
+
         return v;
     }
 
@@ -97,10 +116,45 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
         if (v.getId() == R.id.start_button){
             startBouton.setBackgroundColor(0xff3464d0);
             endBouton.setBackgroundColor(0xff4977dc);
+            mSaveResult.setIsStartSelected(true);
+            mSaveResult.setIsEndSelected(false);
+            if (mSaveResult.getStartStation().getStationName() != null) {
+                result.setText(mSaveResult.getStartStation().getStationName());
+            }
+            else {
+                result.setText("Pick a station");
+            }
         }
         else if (v.getId() == R.id.end_button){
             startBouton.setBackgroundColor(0xff4977dc);
             endBouton.setBackgroundColor(0xff3464d0);
+            mSaveResult.setIsStartSelected(false);
+            mSaveResult.setIsEndSelected(true);
+            if (mSaveResult.getEndStation().getStationName() != null) {
+                result.setText(mSaveResult.getEndStation().getStationName());
+            }
+            else {
+                result.setText("Pick a station");
+            }
+        }
+        else if (v.getId() == R.id.fab) {
+            if (mSaveResult.isGood()) {
+                mLayout.setPanelState(SlidingUpPanelLayout.PanelState.COLLAPSED);
+            }
+            else {
+                Context context = getActivity();
+                AlertDialog ad = new AlertDialog.Builder(context).create();
+                ad.setCancelable(false);
+                ad.setTitle("Error");
+                ad.setMessage("You must pick two different stations on the same line");
+                ad.setButton(-1, "OK", new DialogInterface.OnClickListener() {
+
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.dismiss();
+                    }
+                });
+                ad.show();
+            }
         }
     }
 
@@ -116,6 +170,7 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
         mGoogleMap.getUiSettings().setCompassEnabled(true);
         mGoogleMap.getUiSettings().setMapToolbarEnabled(true);
         mGoogleMap.setBuildingsEnabled(true);
+        mGoogleMap.setOnMarkerClickListener(this);
 
         mLocationManager =  (LocationManager)getActivity().getSystemService(Context.LOCATION_SERVICE);
         mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 0, this);
@@ -137,8 +192,10 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
                 myStations = mDBHandler.getStationsOfLine(e.getName());
                 if (myStations != null && !myStations.isEmpty()) {
                     for (Station s : myStations) {
-                        googleMap.addMarker(new MarkerOptions()
+                        mGoogleMap.addMarker(new MarkerOptions()
                                 .icon(BitmapDescriptorFactory.defaultMarker(colorMarker))
+                                .title(s.getLine().getName())
+                                .snippet(s.getStationName())
                                 .position(new LatLng(s.getLat(), s.getLng())));
                     }
                     String url = getMapsApiDirectionsUrl(myStations);
@@ -174,6 +231,20 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
         //googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(marker, 13));
 
         //googleMap.addMarker(new MarkerOptions().title("Hello Google Maps!").position(marker));
+    }
+
+    @Override
+    public boolean onMarkerClick(Marker marker) {
+        marker.showInfoWindow();
+        if (mSaveResult.getIsStartSelected()) {
+            mSaveResult.setStartStation(mDBHandler.getStationByName(marker.getSnippet()));
+            result.setText(mSaveResult.getStartStation().getStationName());
+        }
+        else {
+            mSaveResult.setEndStation(mDBHandler.getStationByName(marker.getSnippet()));
+            result.setText(mSaveResult.getEndStation().getStationName());
+        }
+        return true;
     }
 
     @Override
@@ -325,6 +396,78 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
 
             mGoogleMap.addPolyline(polyLineOptions);
 
+        }
+    }
+
+    private class saveResult
+    {
+        private Station startStation;
+        private Station endStation;
+        private Line line;
+        private boolean isStartSelected;
+        private boolean isEndSelected;
+
+        saveResult(){
+            startStation = new Station();
+            endStation = new Station();
+            line = new Line();
+            isStartSelected = true;
+            isEndSelected = false;
+        }
+
+        boolean isGood () {
+            if ((startStation.getStationName() == null) || endStation.getStationName() == null) {
+                return false;
+            }
+            else {
+                if (startStation.getLine().getName().equalsIgnoreCase(endStation.getLine().getName())) {
+                    if (!startStation.getStationName().equalsIgnoreCase(endStation.getStationName())) {
+                        return true;
+                    }
+                    else {
+                        return false;
+                    }
+                }
+                else {
+                    return false;
+                }
+            }
+        }
+
+        void setIsStartSelected (boolean _state) {
+            isStartSelected = _state;
+        }
+
+        boolean getIsStartSelected () {
+            return isStartSelected;
+        }
+
+        void setIsEndSelected (boolean _state) {
+            isEndSelected = _state;
+        }
+
+        boolean getIsEndSelected () {
+            return isEndSelected;
+        }
+
+        void setStartStation (Station _station) {
+            startStation = _station;
+        }
+
+        Station getStartStation () {
+            return startStation;
+        }
+
+        void setEndStation (Station _station) {
+            endStation = _station;
+        }
+
+        Station getEndStation () {
+            return endStation;
+        }
+
+        void setLine (Line _line) {
+            line = _line;
         }
     }
 }

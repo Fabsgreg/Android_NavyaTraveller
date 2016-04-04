@@ -155,8 +155,8 @@ public class GoFragment extends Fragment implements View.OnClickListener, Adapte
             myStations = mDBHandler.getStationsOfLine(parent.getItemAtPosition(pos).toString());
             if (myStations != null && !myStations.isEmpty()) {
                 for (Station e : myStations) {
-                    goSpEndAdap.add(e.getSationName());
-                    goSpStaAdap.add(e.getSationName());
+                    goSpEndAdap.add(e.getStationName());
+                    goSpStaAdap.add(e.getStationName());
                 }
             }
             goSpEndAdap.notifyDataSetChanged();

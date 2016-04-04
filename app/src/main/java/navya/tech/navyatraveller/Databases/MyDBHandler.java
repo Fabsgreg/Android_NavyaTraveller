@@ -223,6 +223,18 @@ public class MyDBHandler extends SQLiteOpenHelper {
         return listStations;
     }
 
+    public Station getStationByName(String name) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        Cursor cursor = db.query(TABLE_STATIONS, _AllColumnsStation, COLUMN_STATION_NAME + " = ?", new String[]{name}, null, null, null);
+        if (cursor != null) {
+            cursor.moveToFirst();
+        }
+
+        Station station = cursorToStation(cursor);
+        db.close();
+        return station;
+    }
+
     private Station cursorToStation(Cursor cursor) {
         Station station = new Station();
         station.setId(cursor.getInt(0));

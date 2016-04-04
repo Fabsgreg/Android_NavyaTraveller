@@ -8,6 +8,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:gravity="bottom"
+    android:screenOrientation="portrait"
     sothree:umanoPanelHeight="68dp"
     sothree:umanoShadowHeight="4dp"
     sothree:umanoParallaxOffset="100dp"
@@ -28,8 +29,19 @@
             android:layout_gravity="center_horizontal|bottom"
             android:layout_alignParentBottom="true"
             android:layout_alignParentStart="true"
-            android:layout_below="@+id/textView7"
+            android:layout_below="@+id/result_textView"
             android:paddingTop="5dp" />
+
+        <android.support.design.widget.FloatingActionButton
+            android:id="@+id/fab"
+            android:scaleType="center"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|end"
+            android:src="@drawable/ic_directions"
+            android:layout_marginBottom="20dp"
+            android:layout_alignParentBottom="true"
+            android:layout_alignStart="@+id/result_textView" />
 
         <LinearLayout
             android:orientation="horizontal"
@@ -73,8 +85,8 @@
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
             android:textAppearance="?android:attr/textAppearanceMedium"
-            android:text="Medium Text"
-            android:id="@+id/textView7"
+            android:text="Pick a station"
+            android:id="@+id/result_textView"
             android:layout_weight="1"
             android:editable="true"
             android:background="@drawable/rounded_corner"
