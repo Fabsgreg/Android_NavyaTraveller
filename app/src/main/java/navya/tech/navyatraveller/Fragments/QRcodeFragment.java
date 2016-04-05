@@ -1,12 +1,8 @@
 package navya.tech.navyatraveller.Fragments;
 
-import android.app.Activity;
-import android.app.Fragment;
+import android.support.v4.app.Fragment;
 import android.content.Intent;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.os.Bundle;
-import android.provider.MediaStore;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -16,8 +12,6 @@ import android.widget.TextView;
 
 import com.google.zxing.integration.android.IntentIntegrator;
 import com.google.zxing.integration.android.IntentResult;
-
-import java.io.ByteArrayOutputStream;
 
 import navya.tech.navyatraveller.R;
 
@@ -40,7 +34,7 @@ public class QRcodeFragment extends Fragment {
         //startActivityForResult(intent, CAPTURE_IMAGE_ACTIVITY_REQUEST_CODE);
 
         scan_content = (TextView) v.findViewById(R.id.textView5);
-        IntentIntegrator.forFragment(this).initiateScan();
+        IntentIntegrator.forSupportFragment(this).initiateScan();
         return v;
     }
 

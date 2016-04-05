@@ -1,10 +1,12 @@
 package navya.tech.navyatraveller.Fragments;
 
-import android.app.Fragment;
+import android.location.Criteria;
+import android.support.v4.app.Fragment;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
+import android.content.res.Resources;
 import android.graphics.Color;
-import android.location.Criteria;
 import android.location.Location;
 
 import android.location.LocationListener;
@@ -12,8 +14,9 @@ import android.location.LocationManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -22,16 +25,21 @@ import android.widget.Button;
 import android.widget.TextView;
 
 
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapView;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
+import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.PolylineOptions;
+import com.google.zxing.integration.android.IntentIntegrator;
+import com.google.zxing.integration.android.IntentResult;
 import com.sothree.slidinguppanel.SlidingUpPanelLayout;
 
 import org.json.JSONObject;
@@ -55,6 +63,7 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
     private MapView mMapView;
     private GoogleMap mGoogleMap;
     private LocationManager mLocationManager;
+    private String mProvider;
 
     private SlidingUpPanelLayout mLayout;
 
@@ -69,6 +78,11 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
 
     private saveResult mSaveResult;
 
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setRetainInstance(true);
+    }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -114,48 +128,114 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
     @Override
     public void onClick(View v) {
         if (v.getId() == R.id.start_button){
-            startBouton.setBackgroundColor(0xff3464d0);
-            endBouton.setBackgroundColor(0xff4977dc);
-            mSaveResult.setIsStartSelected(true);
-            mSaveResult.setIsEndSelected(false);
-            if (mSaveResult.getStartStation().getStationName() != null) {
-                result.setText(mSaveResult.getStartStation().getStationName());
-            }
-            else {
-                result.setText("Pick a station");
+            if (!mSaveResult.getIsTravelling()) {
+                startBouton.setBackgroundColor(0xff3464d0);
+                endBouton.setBackgroundColor(0xff4977dc);
+                mSaveResult.setIsStartSelected(true);
+                mSaveResult.setIsEndSelected(false);
+                if (mSaveResult.getStartStation().getStationName() != null) {
+                    result.setText(mSaveResult.getStartStation().getStationName());
+                }
+                else {
+                    result.setText("Pick a station");
+                }
             }
         }
         else if (v.getId() == R.id.end_button){
-            startBouton.setBackgroundColor(0xff4977dc);
-            endBouton.setBackgroundColor(0xff3464d0);
-            mSaveResult.setIsStartSelected(false);
-            mSaveResult.setIsEndSelected(true);
-            if (mSaveResult.getEndStation().getStationName() != null) {
-                result.setText(mSaveResult.getEndStation().getStationName());
-            }
-            else {
-                result.setText("Pick a station");
+            if (!mSaveResult.getIsTravelling()) {
+                startBouton.setBackgroundColor(0xff4977dc);
+                endBouton.setBackgroundColor(0xff3464d0);
+                mSaveResult.setIsStartSelected(false);
+                mSaveResult.setIsEndSelected(true);
+                if (mSaveResult.getEndStation().getStationName() != null) {
+                    result.setText(mSaveResult.getEndStation().getStationName());
+                }
+                else {
+                    result.setText("Pick a station");
+                }
             }
         }
         else if (v.getId() == R.id.fab) {
-            if (mSaveResult.isGood()) {
-                mLayout.setPanelState(SlidingUpPanelLayout.PanelState.COLLAPSED);
+            if (mSaveResult.getIsTravelling()) {
+                mLayout.setPanelState(SlidingUpPanelLayout.PanelState.HIDDEN);
+
+                ViewGroup.MarginLayoutParams params = (ViewGroup.MarginLayoutParams) mMapView.getLayoutParams();
+                params.bottomMargin = (int)convertDpToPixel(0,this.getActivity());
+                mMapView.setLayoutParams(params);
+
+                params = (ViewGroup.MarginLayoutParams) fab.getLayoutParams();
+                params.bottomMargin = (int)convertDpToPixel(0, this.getActivity());
+                fab.setLayoutParams(params);
+                fab.setImageDrawable(ContextCompat.getDrawable(this.getActivity(), R.drawable.ic_directions));
+
+                mSaveResult.setIsTravelling(false);
             }
             else {
-                Context context = getActivity();
-                AlertDialog ad = new AlertDialog.Builder(context).create();
-                ad.setCancelable(false);
-                ad.setTitle("Error");
-                ad.setMessage("You must pick two different stations on the same line");
-                ad.setButton(-1, "OK", new DialogInterface.OnClickListener() {
+                if (mSaveResult.isGood()) {
+                    mLayout.setPanelState(SlidingUpPanelLayout.PanelState.COLLAPSED);
 
-                    public void onClick(DialogInterface dialog, int which) {
-                        dialog.dismiss();
-                    }
-                });
-                ad.show();
+                    ViewGroup.MarginLayoutParams params = (ViewGroup.MarginLayoutParams) mMapView.getLayoutParams();
+                    params.bottomMargin = (int)convertDpToPixel(68, this.getActivity());
+                    mMapView.setLayoutParams(params);
+
+                    params = (ViewGroup.MarginLayoutParams) fab.getLayoutParams();
+                    params.bottomMargin = (int)convertDpToPixel(68, this.getActivity());
+                    fab.setLayoutParams(params);
+                    fab.setImageDrawable(ContextCompat.getDrawable(this.getActivity(), R.drawable.ic_cancel));
+
+                    IntentIntegrator.forSupportFragment(this).setPrompt("Please, scan the QR code near you to complete your order").initiateScan();
+                }
+                else {
+                    ShowMyDialog("Error", "You must pick two different stations on the same line");
+                }
+            }
+            focusOnPosition();
+        }
+    }
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+
+        IntentResult scanningResult = IntentIntegrator.parseActivityResult(requestCode, resultCode, data);
+        if (scanningResult != null) {
+
+            // get message
+            String scanContent = scanningResult.getContents();
+
+            // get format
+            String scanFormat = scanningResult.getFormatName();
+
+            if (scanContent.equalsIgnoreCase(mSaveResult.getStartStation().getStationName())) {
+
+            }
+            else {
+                ShowMyDialog("Error","You've scanned the wrong code, please try again");
+                mLayout.setPanelState(SlidingUpPanelLayout.PanelState.HIDDEN);
+                fab.callOnClick();
             }
         }
+    }
+
+    private void ShowMyDialog (String title, String text) {
+        Context context = getActivity();
+        AlertDialog ad = new AlertDialog.Builder(context).create();
+        ad.setCancelable(false);
+        ad.setTitle(title);
+        ad.setMessage(text);
+        ad.setButton(-1, "OK", new DialogInterface.OnClickListener() {
+
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.dismiss();
+            }
+        });
+        ad.show();
+    }
+
+    private static float convertDpToPixel(float dp, Context context){
+        Resources resources = context.getResources();
+        DisplayMetrics metrics = resources.getDisplayMetrics();
+        float px = dp * ((float)metrics.densityDpi / DisplayMetrics.DENSITY_DEFAULT);
+        return px;
     }
 
 
@@ -172,15 +252,17 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
         mGoogleMap.setBuildingsEnabled(true);
         mGoogleMap.setOnMarkerClickListener(this);
 
-        mLocationManager =  (LocationManager)getActivity().getSystemService(Context.LOCATION_SERVICE);
-        mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 0, this);
+        Criteria criteria = new Criteria();
+        criteria.setAccuracy(Criteria.ACCURACY_FINE);
+        criteria.setPowerRequirement(Criteria.POWER_HIGH);
+        criteria.setAltitudeRequired(false);
+        criteria.setBearingRequired(true);
 
-        Location location = mLocationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-        double lat = location.getLatitude();
-        double lng = location.getLongitude();
-        LatLng coordinate = new LatLng(lat, lng);
-        CameraUpdate cameraUpdate = CameraUpdateFactory.newLatLngZoom(coordinate, 15);
-        mGoogleMap.animateCamera(cameraUpdate);
+        mLocationManager =  (LocationManager)getActivity().getSystemService(Context.LOCATION_SERVICE);
+        mProvider = mLocationManager.getBestProvider(criteria, true);
+        mLocationManager.requestLocationUpdates(mProvider, 50, 0, this);
+
+        focusOnPosition();
 
         List<Station> myStations = new ArrayList<Station>();
         List<Line> myLines = new ArrayList<Line>();
@@ -205,56 +287,56 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
                 colorMarker += 30;
             }
         }
+    }
 
+    private void focusOnPosition () {
+        Location location = mLocationManager.getLastKnownLocation(mProvider);
+        double lat = location.getLatitude();
+        double lng = location.getLongitude();
+        LatLng coordinate = new LatLng(lat, lng);
+        CameraPosition cameraPosition;
 
-
-/*        mGoogleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(coordinate, 13));
-
-        // Flat markers will rotate when the map is rotated,
-        // and change perspective when the map is tilted.
-        mGoogleMap.addMarker(new MarkerOptions()
-                .icon(BitmapDescriptorFactory.fromResource(R.drawable.ic_direction_arrow))
-                .position(coordinate)
-                .flat(true));
-                //.rotation(245));
-
-        CameraPosition cameraPosition = CameraPosition.builder()
-                .target(coordinate)
-                .zoom(13)
-                .bearing(90)
-                .build();
+        if (mSaveResult.getIsTravelling()) {
+            cameraPosition = CameraPosition.builder()
+                    .target(coordinate)
+                    .zoom(20)
+                    .tilt(70)
+                    .build();
+        }
+        else {
+            cameraPosition = CameraPosition.builder()
+                    .target(coordinate)
+                    .zoom(15)
+                    .tilt(0)
+                    .build();
+        }
 
         // Animate the change in camera view over 2 seconds
         mGoogleMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition),
-                2000, null);*/
-
-        //googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(marker, 13));
-
-        //googleMap.addMarker(new MarkerOptions().title("Hello Google Maps!").position(marker));
+                2000, null);
     }
 
     @Override
     public boolean onMarkerClick(Marker marker) {
         marker.showInfoWindow();
-        if (mSaveResult.getIsStartSelected()) {
-            mSaveResult.setStartStation(mDBHandler.getStationByName(marker.getSnippet()));
-            result.setText(mSaveResult.getStartStation().getStationName());
-        }
-        else {
-            mSaveResult.setEndStation(mDBHandler.getStationByName(marker.getSnippet()));
-            result.setText(mSaveResult.getEndStation().getStationName());
+
+        if (!mSaveResult.getIsTravelling()) {
+            if (mSaveResult.getIsStartSelected()) {
+                mSaveResult.setStartStation(mDBHandler.getStationByName(marker.getSnippet()));
+                result.setText(mSaveResult.getStartStation().getStationName());
+                endBouton.callOnClick();
+            }
+            else {
+                mSaveResult.setEndStation(mDBHandler.getStationByName(marker.getSnippet()));
+                result.setText(mSaveResult.getEndStation().getStationName());
+            }
         }
         return true;
     }
 
     @Override
     public void onLocationChanged(Location location) {
-
-        double lat = location.getLatitude();
-        double lng = location.getLongitude();
-        LatLng coordinate = new LatLng(lat, lng);
-        CameraUpdate cameraUpdate = CameraUpdateFactory.newLatLngZoom(coordinate, 15);
-        mGoogleMap.animateCamera(cameraUpdate);
+        focusOnPosition();
     }
 
     @Override
@@ -268,14 +350,14 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
     }
 
     @Override
-    public void onStatusChanged(String provider, int status, Bundle extras){
+    public void onStatusChanged(String provider, int status, Bundle extras) {
 
     }
-
 
     @Override
     public void onResume() {
         super.onResume();
+        //mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 0, this);
         mMapView.onResume();
     }
 
@@ -288,7 +370,7 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
     @Override
     public void onDestroy() {
         super.onDestroy();
-        //mMapView.onDestroy();
+        mMapView.onDestroy();
     }
 
     @Override
@@ -314,8 +396,6 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
             else {
                 waypoints += "|" + myStations.get(i).getLat() + "," + myStations.get(i).getLng()  + "|";
             }
-
-
         }
 
         String origin = "origin=" + myStations.get(0).getLat() + "," + myStations.get(0).getLng() + "&";
@@ -406,6 +486,7 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
         private Line line;
         private boolean isStartSelected;
         private boolean isEndSelected;
+        private boolean isTravelling;
 
         saveResult(){
             startStation = new Station();
@@ -413,6 +494,7 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
             line = new Line();
             isStartSelected = true;
             isEndSelected = false;
+            isTravelling = false;
         }
 
         boolean isGood () {
@@ -422,6 +504,7 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
             else {
                 if (startStation.getLine().getName().equalsIgnoreCase(endStation.getLine().getName())) {
                     if (!startStation.getStationName().equalsIgnoreCase(endStation.getStationName())) {
+                        isTravelling = true;
                         return true;
                     }
                     else {
@@ -469,5 +552,9 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
         void setLine (Line _line) {
             line = _line;
         }
+
+        void setIsTravelling (boolean _state) { isTravelling = _state; }
+
+        boolean getIsTravelling () { return isTravelling; }
     }
 }
