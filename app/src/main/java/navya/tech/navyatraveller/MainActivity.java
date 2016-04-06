@@ -20,13 +20,6 @@ import navya.tech.navyatraveller.Fragments.ToolFragment;
 
 public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
 
-    private MyDBHandler mDBHandler;
-
-    private QRcodeFragment fragQRCode;
-    private GmapFragment fragGMap;
-    private GoFragment fragGo;
-    private ToolFragment fragTool;
-
     private Fragment[] fragments;
     private String[] fragmentTAGS;
 
@@ -47,7 +40,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         navigationView.setNavigationItemSelectedListener(this);
         navigationView.getMenu().getItem(0).setChecked(true);
 
-        mDBHandler = new MyDBHandler(this);
+        MyDBHandler mDBHandler = new MyDBHandler(this);
         mDBHandler.Reset();
         mDBHandler.createLine("Line1");
         mDBHandler.createStation("Station1", (float) 48.890354, (float) 2.353866, "Line1");
@@ -57,16 +50,16 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         mDBHandler.createLine("Line2");
         mDBHandler.createStation("StationA", (float) 48.893595, (float) 2.354017, "Line2");
         mDBHandler.createStation("StationB", (float) 48.894778, (float) 2.352902, "Line2");
-        mDBHandler.createStation("StationC", (float)48.894535, (float)2.351229, "Line2");
-        mDBHandler.createStation("StationD", (float)48.893781, (float)2.351301, "Line2");
-        mDBHandler.createStation("StationE", (float)48.893425, (float)2.352704, "Line2");
+        mDBHandler.createStation("StationC", (float) 48.894535, (float) 2.351229, "Line2");
+        mDBHandler.createStation("StationD", (float) 48.893781, (float) 2.351301, "Line2");
+        mDBHandler.createStation("StationE", (float) 48.893425, (float) 2.352704, "Line2");
 
-        fragGMap = new GmapFragment();
-        fragQRCode = new QRcodeFragment();
-        fragGo = new GoFragment();
-        fragTool = new ToolFragment();
+        GmapFragment fragGMap = new GmapFragment();
+        QRcodeFragment fragQRCode = new QRcodeFragment();
+        GoFragment fragGo = new GoFragment();
+        ToolFragment fragTool = new ToolFragment();
 
-        fragments = new Fragment[]{fragQRCode,fragGMap,fragGo,fragTool};
+        fragments = new Fragment[]{fragQRCode, fragGMap, fragGo, fragTool};
         fragmentTAGS = new String[]{"QR code","Map","Go","Tools"};
 
         onNavigationItemSelected(navigationView.getMenu().getItem(0));

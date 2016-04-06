@@ -2,7 +2,6 @@ package navya.tech.navyatraveller;
 
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 
 import org.json.JSONArray;
@@ -13,21 +12,39 @@ import com.google.android.gms.maps.model.LatLng;
 
 public class PathJSONParser {
 
-    public List<List<HashMap<String, String>>> parse(JSONObject jObject) {
-        List<List<HashMap<String, String>>> routes = new ArrayList<List<HashMap<String, String>>>();
+    public SaveLine parse1(JSONObject jObject) {
+        SaveLine _line = new SaveLine();
         JSONArray jRoutes = null;
         JSONArray jLegs = null;
+        JSONArray jWaypointOrder = null;
         JSONArray jSteps = null;
+        JSONObject jDurations = null;
+        JSONObject jDistances = null;
+
         try {
             jRoutes = jObject.getJSONArray("routes");
             /** Traversing all routes */
             for (int i = 0; i < jRoutes.length(); i++) {
                 jLegs = ((JSONObject) jRoutes.get(i)).getJSONArray("legs");
-                List<HashMap<String, String>> path = new ArrayList<HashMap<String, String>>();
+                jWaypointOrder = ((JSONObject) jRoutes.get(i)).getJSONArray("waypoint_order");
+
+                /** Traversing all Waypoints */
+                for (int m = 0; m < jWaypointOrder.length(); m++) {
+                    int toto = (Integer) jWaypointOrder.get(m);
+                    _line.addWaypoint(toto);
+                }
 
                 /** Traversing all legs */
                 for (int j = 0; j < jLegs.length(); j++) {
                     jSteps = ((JSONObject) jLegs.get(j)).getJSONArray("steps");
+                    jDurations = ((JSONObject) jLegs.get(j)).getJSONObject("duration");
+                    jDistances = ((JSONObject) jLegs.get(j)).getJSONObject("distance");
+
+                    // Get duration
+                    _line.addDuration((Integer) jDurations.get("value"));
+
+                    // Get distance
+                    _line.addDistance((Integer) jDistances.get("value"));
 
                     /** Traversing all steps */
                     for (int k = 0; k < jSteps.length(); k++) {
@@ -38,23 +55,17 @@ public class PathJSONParser {
 
                         /** Traversing all points */
                         for (int l = 0; l < list.size(); l++) {
-                            HashMap<String, String> hm = new HashMap<String, String>();
-                            hm.put("lat",
-                                    Double.toString(((LatLng) list.get(l)).latitude));
-                            hm.put("lng",
-                                    Double.toString(((LatLng) list.get(l)).longitude));
-                            path.add(hm);
+                            _line.addPoint((LatLng) list.get(l));
                         }
                     }
-                    routes.add(path);
                 }
             }
-
         } catch (JSONException e) {
             e.printStackTrace();
         } catch (Exception e) {
         }
-        return routes;
+        _line.updateResult();
+        return _line;
     }
 
     /**
