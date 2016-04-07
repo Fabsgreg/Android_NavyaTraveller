@@ -43,4 +43,7 @@ dependencies {
 
     // Sliding Up lib
     compile 'com.sothree.slidinguppanel:library:3.3.0'
+
+    // Http Client for php request
+    compile 'com.mcxiaoke.volley:library:1.0.19'
 }

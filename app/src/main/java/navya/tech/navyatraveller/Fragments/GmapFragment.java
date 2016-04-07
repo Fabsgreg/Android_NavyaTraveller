@@ -42,7 +42,6 @@ import com.sothree.slidinguppanel.SlidingUpPanelLayout;
 import org.json.JSONObject;
 
 import java.math.BigDecimal;
-import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -308,15 +307,15 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
         mGoogleMap.setBuildingsEnabled(true);
         mGoogleMap.setOnMarkerClickListener(this);
 
-        Criteria criteria = new Criteria();
+/*        Criteria criteria = new Criteria();
         criteria.setAccuracy(Criteria.ACCURACY_FINE);
         criteria.setPowerRequirement(Criteria.POWER_HIGH);
         criteria.setAltitudeRequired(false);
-        criteria.setBearingRequired(true);
+        criteria.setBearingRequired(true);*/
 
         mLocationManager =  (LocationManager)getActivity().getSystemService(Context.LOCATION_SERVICE);
-        mProvider = mLocationManager.getBestProvider(criteria, true);
-        mLocationManager.requestLocationUpdates(mProvider, 50, 0, this);
+        /*mProvider = mLocationManager.getBestProvider(criteria, true);*/
+        mLocationManager.requestLocationUpdates(LocationManager.PASSIVE_PROVIDER, 50, 0, this);
 
         focusOnPosition();
 
@@ -350,30 +349,32 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
     }
 
     private void focusOnPosition () {
-        Location location = mLocationManager.getLastKnownLocation(mProvider);
-        double lat = location.getLatitude();
-        double lng = location.getLongitude();
-        LatLng coordinate = new LatLng(lat, lng);
-        CameraPosition cameraPosition;
+        Location location = mLocationManager.getLastKnownLocation(LocationManager.PASSIVE_PROVIDER);
+        if (location != null) {
+            double lat = location.getLatitude();
+            double lng = location.getLongitude();
+            LatLng coordinate = new LatLng(lat, lng);
+            CameraPosition cameraPosition;
 
-        if (mSavedResult.getIsTravelling()) {
-            cameraPosition = CameraPosition.builder()
-                    .target(coordinate)
-                    .zoom(20)
-                    .tilt(70)
-                    .build();
-        }
-        else {
-            cameraPosition = CameraPosition.builder()
-                    .target(coordinate)
-                    .zoom(15)
-                    .tilt(0)
-                    .build();
-        }
+            if (mSavedResult.getIsTravelling()) {
+                cameraPosition = CameraPosition.builder()
+                        .target(coordinate)
+                        .zoom(20)
+                        .tilt(70)
+                        .build();
+            }
+            else {
+                cameraPosition = CameraPosition.builder()
+                        .target(coordinate)
+                        .zoom(15)
+                        .tilt(0)
+                        .build();
+            }
 
-        // Animate the change in camera view over 2 seconds
-        mGoogleMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition),
-                2000, null);
+            // Animate the change in camera view over 2 seconds
+            mGoogleMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition),
+                    2000, null);
+        }
     }
 
     @Override
@@ -411,7 +412,6 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
 
     @Override
     public void onStatusChanged(String provider, int status, Bundle extras) {
-
     }
 
     @Override
@@ -500,7 +500,7 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
             try {
                 jObject = new JSONObject(jsonData[0]);
                 PathJSONParser parser = new PathJSONParser();
-                mResult = parser.parse1(jObject);
+                mResult = parser.parse(jObject);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -517,7 +517,7 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
         @Override
         protected void onPostExecute(SaveLine line) {
             PolylineOptions polyLineOptions = new PolylineOptions();
-            
+
             polyLineOptions.addAll(line.getAllPoints());
             polyLineOptions.width(5);
             polyLineOptions.color(Color.BLUE);

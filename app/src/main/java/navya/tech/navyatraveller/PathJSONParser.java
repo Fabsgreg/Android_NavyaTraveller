@@ -12,7 +12,7 @@ import com.google.android.gms.maps.model.LatLng;
 
 public class PathJSONParser {
 
-    public SaveLine parse1(JSONObject jObject) {
+    public SaveLine parse(JSONObject jObject) {
         SaveLine _line = new SaveLine();
         JSONArray jRoutes = null;
         JSONArray jLegs = null;
