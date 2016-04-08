@@ -54,6 +54,7 @@ import navya.tech.navyatraveller.HttpConnection;
 import navya.tech.navyatraveller.PathJSONParser;
 import navya.tech.navyatraveller.R;
 import navya.tech.navyatraveller.SaveLine;
+import navya.tech.navyatraveller.SaveResult;
 
 /**
  * Created by gregoire.frezet on 24/03/2016.
@@ -80,7 +81,7 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
 
     private FloatingActionButton fab;
 
-    private savedResult mSavedResult;
+    private SaveResult mSavedResult;
 
     private List<SaveLine> mSavedLine;
 
@@ -94,7 +95,7 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View v = inflater.inflate(R.layout.gmap_fragment, container, false);
 
-        mSavedResult = new savedResult();
+        mSavedResult = new SaveResult();
         mSavedLine = new ArrayList<SaveLine>();
 
         mMapView = (MapView) v.findViewById(R.id.map);
@@ -180,6 +181,8 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
                 fab.setImageDrawable(ContextCompat.getDrawable(this.getActivity(), R.drawable.ic_directions));
 
                 mSavedResult.setIsTravelling(false);
+
+                showEverything();
             }
             else {
                 if (mSavedResult.isGood()) {
@@ -194,11 +197,12 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
                     fab.setLayoutParams(params);
                     fab.setImageDrawable(ContextCompat.getDrawable(this.getActivity(), R.drawable.ic_cancel));
 
-
                     int index = -1;
+
                     for (int i=0; i < mSavedLine.size(); i++){
                         if (mSavedLine.get(i).getLineName().equalsIgnoreCase(mSavedResult.getLine().getName())) {
                             index = i;
+                            mSavedResult.setIndex(index);
                             break;
                         }
                     }
@@ -217,6 +221,8 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
                     String DateToStr = format.format(now.getTime());
 
                     mArrivalTime.setText(DateToStr);
+
+                    showPath(mSavedResult.getLine().getName(), mSavedResult.getStartStation().getStationName(), mSavedResult.getEndStation().getStationName());
 
                     IntentIntegrator.forSupportFragment(this).setPrompt("Please, scan the QR code near you to complete your order").initiateScan();
                 }
@@ -342,10 +348,62 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
                 colorMarker += 30;
             }
         }
-        // test
-        //mSavedLine.isEmpty();
-       // return;
-        //
+    }
+
+    private void showPath(String line, String startStation, String endStation) {
+        mGoogleMap.clear();
+        List<Station> myStations = mDBHandler.getStationsOfLineBetween(line,startStation,endStation);
+
+        float colorMarker = 30.0F;
+
+        for (Station s : myStations) {
+            mGoogleMap.addMarker(new MarkerOptions()
+                    .icon(BitmapDescriptorFactory.defaultMarker(colorMarker))
+                    .title(s.getLine().getName())
+                    .snippet(s.getStationName())
+                    .position(new LatLng(s.getLat(), s.getLng())));
+        }
+
+        PolylineOptions polyLineOptions = new PolylineOptions();
+
+        polyLineOptions.addAll(mSavedLine.get(mSavedResult.getIndex()).getPathPoints(startStation, endStation));
+        polyLineOptions.width(15);
+        polyLineOptions.color(Color.RED);
+        mGoogleMap.addPolyline(polyLineOptions);
+    }
+
+    private void showEverything() {
+        mGoogleMap.clear();
+
+        List<Station> myStations = new ArrayList<Station>();
+        List<Line> myLines = new ArrayList<Line>();
+
+        float colorMarker = 0.0F;
+        myLines = mDBHandler.getAllLines();
+        if (myLines != null && !myLines.isEmpty()) {
+            for (Line e : myLines) {
+                myStations = mDBHandler.getStationsOfLine(e.getName());
+                if (myStations != null && !myStations.isEmpty()) {
+                    for (Station s : myStations) {
+                        mGoogleMap.addMarker(new MarkerOptions()
+                                .icon(BitmapDescriptorFactory.defaultMarker(colorMarker))
+                                .title(s.getLine().getName())
+                                .snippet(s.getStationName())
+                                .position(new LatLng(s.getLat(), s.getLng())));
+                    }
+
+                    PolylineOptions polyLineOptions = new PolylineOptions();
+
+                    long index = e.getId();
+                    polyLineOptions.addAll(mSavedLine.get(((int)index-1)).getAllPoints());
+                    polyLineOptions.width(5);
+                    polyLineOptions.color(Color.BLUE);
+                    mGoogleMap.addPolyline(polyLineOptions);
+
+                }
+                colorMarker += 30;
+            }
+        }
     }
 
     private void focusOnPosition () {
@@ -526,86 +584,5 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
 
     }
 
-    private class savedResult {
-        private Station startStation;
-        private Station endStation;
-        private Line line;
-        private boolean isStartSelected;
-        private boolean isEndSelected;
-        private boolean isTravelling;
 
-        savedResult(){
-            startStation = new Station();
-            endStation = new Station();
-            line = new Line();
-            isStartSelected = true;
-            isEndSelected = false;
-            isTravelling = false;
-        }
-
-        boolean isGood () {
-            if ((startStation.getStationName() == null) || endStation.getStationName() == null) {
-                return false;
-            }
-            else {
-                if (startStation.getLine().getName().equalsIgnoreCase(endStation.getLine().getName())) {
-                    if (!startStation.getStationName().equalsIgnoreCase(endStation.getStationName())) {
-                        isTravelling = true;
-                        line = startStation.getLine();
-                        return true;
-                    }
-                    else {
-                        return false;
-                    }
-                }
-                else {
-                    return false;
-                }
-            }
-        }
-
-        Line getLine () {
-            return line;
-        }
-
-        void setIsStartSelected (boolean _state) {
-            isStartSelected = _state;
-        }
-
-        boolean getIsStartSelected () {
-            return isStartSelected;
-        }
-
-        void setIsEndSelected (boolean _state) {
-            isEndSelected = _state;
-        }
-
-        boolean getIsEndSelected () {
-            return isEndSelected;
-        }
-
-        void setStartStation (Station _station) {
-            startStation = _station;
-        }
-
-        Station getStartStation () {
-            return startStation;
-        }
-
-        void setEndStation (Station _station) {
-            endStation = _station;
-        }
-
-        Station getEndStation () {
-            return endStation;
-        }
-
-        void setLine (Line _line) {
-            line = _line;
-        }
-
-        void setIsTravelling (boolean _state) { isTravelling = _state; }
-
-        boolean getIsTravelling () { return isTravelling; }
-    }
 }

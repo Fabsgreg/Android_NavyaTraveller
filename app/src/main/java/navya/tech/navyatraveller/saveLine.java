@@ -28,6 +28,24 @@ public class SaveLine {
         route = new ArrayList<List<LatLng>>();
     }
 
+    public List<LatLng> getPathPoints (String startStation, String endStation) {
+        List<LatLng> tmp = new ArrayList<LatLng>();
+        int indexStart = stationsName.indexOf(startStation);
+        int indexEnd = stationsName.indexOf(endStation);
+
+        if (indexStart < indexEnd) {
+            for (int i=indexStart; i<indexEnd; i++) {
+                tmp.addAll(route.get(i));
+            }
+        }
+        else {
+            for (int i=indexEnd; i<indexStart; i++) {
+                tmp.addAll(route.get(i));
+            }
+        }
+        return tmp;
+    }
+
     public void addPointOnRoute (Integer step, LatLng point) {
         try  {
             route.get(step).add(point);
@@ -44,10 +62,16 @@ public class SaveLine {
         int indexStart = stationsName.indexOf(startStation);
         int indexEnd = stationsName.indexOf(endStation);
 
-        for (int i=indexStart; i<(indexEnd); i++) {
-            result += distance.get(i);
+        if (indexStart < indexEnd) {
+            for (int i=indexStart; i<indexEnd; i++) {
+                result += distance.get(i);
+            }
         }
-
+        else {
+            for (int i=indexEnd; i<indexStart; i++) {
+                result += distance.get(i);
+            }
+        }
         return result;
     }
 
@@ -56,9 +80,17 @@ public class SaveLine {
         int indexStart = stationsName.indexOf(startStation);
         int indexEnd = stationsName.indexOf(endStation);
 
-        for (int i=indexStart; i<(indexEnd); i++) {
-            result += duration.get(i);
+        if (indexStart < indexEnd) {
+            for (int i=indexStart; i<indexEnd; i++) {
+                result += duration.get(i);
+            }
         }
+        else {
+            for (int i=indexEnd; i<indexStart; i++) {
+                result += duration.get(i);
+            }
+        }
+
 
         return result;
     }

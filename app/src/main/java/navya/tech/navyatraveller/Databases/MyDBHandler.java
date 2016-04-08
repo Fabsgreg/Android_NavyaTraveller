@@ -223,6 +223,34 @@ public class MyDBHandler extends SQLiteOpenHelper {
         return listStations;
     }
 
+    public List<Station> getStationsOfLineBetween(String lineName, String startStation, String endStation) {
+        List<Station> listStations = new ArrayList<Station>();
+        SQLiteDatabase db = this.getWritableDatabase();
+
+        Cursor cursor = null;
+        try {
+            cursor = db.rawQuery("SELECT * FROM " + TABLE_STATIONS + " WHERE " + COLUMN_STATION_LINE_NAME + " = '"+lineName+"' AND (" + COLUMN_STATION_NAME + " BETWEEN '"+startStation+"' AND '"+endStation+"')", null);
+            if (cursor.getCount() == 0) {
+                cursor = db.rawQuery("SELECT * FROM " + TABLE_STATIONS + " WHERE " + COLUMN_STATION_LINE_NAME + " = '"+lineName+"' AND (" + COLUMN_STATION_NAME + " BETWEEN '"+endStation+"' AND '"+startStation+"')", null);
+            }
+        }
+        catch (Exception e){
+        }
+
+        cursor.moveToFirst();
+        while (!cursor.isAfterLast()) {
+            Station station = cursorToStation(cursor);
+            listStations.add(station);
+            cursor.moveToNext();
+        }
+        // make sure to close the cursor
+        cursor.close();
+        db.close();
+        return listStations;
+    }
+
+
+
     public Station getStationByName(String name) {
         SQLiteDatabase db = this.getWritableDatabase();
         Cursor cursor = db.query(TABLE_STATIONS, _AllColumnsStation, COLUMN_STATION_NAME + " = ?", new String[]{name}, null, null, null);
