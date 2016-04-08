@@ -38,7 +38,10 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     private Fragment[] fragments;
     private String[] fragmentTAGS;
-    NavigationView navigationView;
+    private NavigationView navigationView;
+
+    private Handler handler;
+    private Runnable toto;
 
     private boolean[] DBloaded;
 
@@ -75,11 +78,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
         phpLineRequest(mDBHandler);
 
-        final Handler handler = new Handler();
-        handler.postDelayed(new Runnable() {
+        toto = new Runnable() {
             @Override
             public void run() {
-                //Do something after 100ms
                 if (DBloaded[0] && DBloaded[1]) {
                     navigationView.getMenu().getItem(0).setChecked(true);
                     onNavigationItemSelected(navigationView.getMenu().getItem(0));
@@ -87,9 +88,11 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 else {
                     ShowMyDialog("Your internet connection is not available", "Please, check your network before to launch the app");
                 }
-
             }
-        }, 6000);
+        };
+
+        handler = new Handler();
+        handler.postDelayed(toto, 6000);
     }
 
 
@@ -146,6 +149,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                         myDB.createStation(stationName, latitude.floatValue(), longitude.floatValue(), lineName);
                     }
                     DBloaded[1] = true;
+                    handler.post(toto);
 
                 } catch (JSONException e) {
                     e.printStackTrace();
