@@ -343,8 +343,8 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
             }
         }
         // test
-        mSavedLine.isEmpty();
-        return;
+        //mSavedLine.isEmpty();
+       // return;
         //
     }
 

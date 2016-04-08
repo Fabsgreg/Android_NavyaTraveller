@@ -85,11 +85,11 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     onNavigationItemSelected(navigationView.getMenu().getItem(0));
                 }
                 else {
-                    ShowMyDialog("Internet connection not available", "Please, check your network before to launch the app");
+                    ShowMyDialog("Your internet connection is not available", "Please, check your network before to launch the app");
                 }
 
             }
-        }, 3000);
+        }, 6000);
     }
 
 

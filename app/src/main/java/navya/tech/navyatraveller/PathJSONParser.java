@@ -55,7 +55,7 @@ public class PathJSONParser {
 
                         /** Traversing all points */
                         for (int l = 0; l < list.size(); l++) {
-                            _line.addPoint((LatLng) list.get(l));
+                            _line.addPointOnRoute(j,(LatLng) list.get(l));
                         }
                     }
                 }
