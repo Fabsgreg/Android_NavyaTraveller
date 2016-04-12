@@ -21,7 +21,9 @@ import java.util.List;
 import navya.tech.navyatraveller.Databases.Line;
 import navya.tech.navyatraveller.Databases.MyDBHandler;
 import navya.tech.navyatraveller.Databases.Station;
+import navya.tech.navyatraveller.MainActivity;
 import navya.tech.navyatraveller.R;
+import navya.tech.navyatraveller.SaveResult;
 
 /**
  * Created by gregoire.frezet on 24/03/2016.
@@ -73,14 +75,6 @@ public class GoFragment extends Fragment implements View.OnClickListener, Adapte
         goBouton.setOnClickListener(this);
 
 
-
-
-/*        goSpinnerStart = (Spinner) v.findViewById(R.id.spinnerStart);
-        goSpinnerStart.setOnItemSelectedListener(this);
-
-        goSpinnerEnd = (Spinner) v.findViewById(R.id.spinnerEnd);
-        goSpinnerEnd.setOnItemSelectedListener(this);*/
-
         return v;
     }
 
@@ -104,11 +98,6 @@ public class GoFragment extends Fragment implements View.OnClickListener, Adapte
         //do what you want to do when mybutton is clicked
 
         if (v.getId() == R.id.go_button) {
-            //int tt = 1;
-            //FragmentTransaction t = this.getFragmentManager().beginTransaction();
-            //Fragment mFrag = new ToolFragment();
-            //t.replace(R.id.content_frame, mFrag, "ToolFragment");
-            //t.commit();
 
             Context context = getActivity();
             AlertDialog ad = new AlertDialog.Builder(context).create();
@@ -125,18 +114,36 @@ public class GoFragment extends Fragment implements View.OnClickListener, Adapte
                 });
             }
             else {
-                ad.setTitle("Congratulation");
+/*                ad.setTitle("Congratulation");
                 ad.setMessage("Your shuttle has been requested");
                 ad.setButton(-1, "OK", new DialogInterface.OnClickListener() {
 
                     public void onClick(DialogInterface dialog, int which) {
                         dialog.dismiss();
                     }
-                });
+                });*/
+
+                Station startStation = mDBHandler.getStationByName(goSpinnerStart.getSelectedItem().toString());
+                Station endStation = mDBHandler.getStationByName(goSpinnerEnd.getSelectedItem().toString());
+
+                MySaving().Reset();
+                MySaving().setStartStation(startStation);
+                MySaving().setEndStation(endStation);
+                MySaving().setLine(startStation.getLine());
+                MySaving().setPreviousFragment("Go");
+
+                ((MainActivity) getActivity()).navigationView.getMenu().getItem(0).setChecked(true);
+                ((MainActivity) getActivity()).onNavigationItemSelected(((MainActivity) getActivity()).navigationView.getMenu().getItem(0));
+
+                return;
             }
 
             ad.show();
         }
+    }
+
+    public SaveResult MySaving() {
+        return ((MainActivity) getActivity()).saving;
     }
 
     @Override

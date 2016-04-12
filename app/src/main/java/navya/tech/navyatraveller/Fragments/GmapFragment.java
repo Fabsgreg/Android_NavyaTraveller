@@ -51,6 +51,7 @@ import navya.tech.navyatraveller.Databases.Line;
 import navya.tech.navyatraveller.Databases.MyDBHandler;
 import navya.tech.navyatraveller.Databases.Station;
 import navya.tech.navyatraveller.HttpConnection;
+import navya.tech.navyatraveller.MainActivity;
 import navya.tech.navyatraveller.PathJSONParser;
 import navya.tech.navyatraveller.R;
 import navya.tech.navyatraveller.SaveLine;
@@ -81,8 +82,6 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
 
     private FloatingActionButton fab;
 
-    private SaveResult mSavedResult;
-
     private List<SaveLine> mSavedLine;
 
     @Override
@@ -95,7 +94,6 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View v = inflater.inflate(R.layout.gmap_fragment, container, false);
 
-        mSavedResult = new SaveResult();
         mSavedLine = new ArrayList<SaveLine>();
 
         mMapView = (MapView) v.findViewById(R.id.map);
@@ -131,36 +129,58 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
         return v;
     }
 
+    public SaveResult MySaving() {
+        return ((MainActivity) getActivity()).saving;
+    }
+
     @Override
     public void onViewCreated(View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
     }
 
+    public void Update () {
+        if (MySaving().getWasQRcode()) {
+            endBouton.callOnClick();
+        }
+        else if (MySaving().getWasGo()) {
+            endBouton.callOnClick();
+            fab.callOnClick();
+        }
+        MySaving().setPreviousFragment("Map");
+    }
+
     @Override
     public void onClick(View v) {
+        // Fire click event on Start button
         if (v.getId() == R.id.start_button){
-            if (!mSavedResult.getIsTravelling()) {
+            if (!MySaving().getIsTravelling()) {
                 startBouton.setBackgroundColor(0xff3464d0);
                 endBouton.setBackgroundColor(0xff4977dc);
-                mSavedResult.setIsStartSelected(true);
-                mSavedResult.setIsEndSelected(false);
-                if (mSavedResult.getStartStation().getStationName() != null) {
-                    mResult.setText(mSavedResult.getStartStation().getStationName());
+                MySaving().setIsStartSelected(true);
+                MySaving().setIsEndSelected(false);
+                // Check if a station has been selected before
+                if (MySaving().getStartStation().getStationName() != null) {
+                    // If yes, memorize this station as starting point
+                    mResult.setText(MySaving().getStartStation().getStationName());
                 }
                 else {
                     mResult.setText("Pick a station");
                 }
+
             }
         }
+        // Fire click event on End button
         else if (v.getId() == R.id.end_button){
-            if (!mSavedResult.getIsTravelling()) {
+            if (!MySaving().getIsTravelling()) {
                 startBouton.setBackgroundColor(0xff4977dc);
                 endBouton.setBackgroundColor(0xff3464d0);
-                mSavedResult.setIsStartSelected(false);
-                mSavedResult.setIsEndSelected(true);
-                if (mSavedResult.getEndStation().getStationName() != null) {
-                    mResult.setText(mSavedResult.getEndStation().getStationName());
+                MySaving().setIsStartSelected(false);
+                MySaving().setIsEndSelected(true);
+                // Check if a station has been selected before
+                if (MySaving().getEndStation().getStationName() != null) {
+                    // If yes, memorize this station as ending point
+                    mResult.setText(MySaving().getEndStation().getStationName());
                 }
                 else {
                     mResult.setText("Pick a station");
@@ -168,63 +188,36 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
             }
         }
         else if (v.getId() == R.id.fab) {
-            if (mSavedResult.getIsTravelling()) {
+            // If you're already travelling
+            if (MySaving().getIsTravelling()) {
+                // Hide the SlidingUpPanel
                 mLayout.setPanelState(SlidingUpPanelLayout.PanelState.HIDDEN);
 
+                // Resize the Google map component
                 ViewGroup.MarginLayoutParams params = (ViewGroup.MarginLayoutParams) mMapView.getLayoutParams();
                 params.bottomMargin = (int)convertDpToPixel(0,this.getActivity());
                 mMapView.setLayoutParams(params);
 
                 params = (ViewGroup.MarginLayoutParams) fab.getLayoutParams();
-                params.bottomMargin = (int)convertDpToPixel(0, this.getActivity());
+                params.bottomMargin = (int) convertDpToPixel(0, this.getActivity());
                 fab.setLayoutParams(params);
                 fab.setImageDrawable(ContextCompat.getDrawable(this.getActivity(), R.drawable.ic_directions));
 
-                mSavedResult.setIsTravelling(false);
-
+                // Display all the line with their associated stations
                 showEverything();
+
+                MySaving().setIsTravelling(false);
             }
             else {
-                if (mSavedResult.isGood()) {
-                    mLayout.setPanelState(SlidingUpPanelLayout.PanelState.COLLAPSED);
-
-                    ViewGroup.MarginLayoutParams params = (ViewGroup.MarginLayoutParams) mMapView.getLayoutParams();
-                    params.bottomMargin = (int)convertDpToPixel(68, this.getActivity());
-                    mMapView.setLayoutParams(params);
-
-                    params = (ViewGroup.MarginLayoutParams) fab.getLayoutParams();
-                    params.bottomMargin = (int)convertDpToPixel(68, this.getActivity());
-                    fab.setLayoutParams(params);
-                    fab.setImageDrawable(ContextCompat.getDrawable(this.getActivity(), R.drawable.ic_cancel));
-
-                    int index = -1;
-
-                    for (int i=0; i < mSavedLine.size(); i++){
-                        if (mSavedLine.get(i).getLineName().equalsIgnoreCase(mSavedResult.getLine().getName())) {
-                            index = i;
-                            mSavedResult.setIndex(index);
-                            break;
-                        }
+                if (MySaving().isGood()) {
+                    // Show the QRcode camera window if it hasn't been scanned before
+                    if ( !MySaving().getStationScanned().equalsIgnoreCase(MySaving().getStartStation().getStationName()) ) {
+                        IntentIntegrator.forSupportFragment(this).setPrompt("Please, scan the QR code near you to complete your order").initiateScan();
                     }
-
-                    int waitingTime = 2;
-
-                    mWaitingTime.setText("" + waitingTime + " min");
-                    mDistance.setText("" + truncateDecimal(mSavedLine.get(index).getTotalDistance(mSavedResult.getStartStation().getStationName(), mSavedResult.getEndStation().getStationName()), 2) + " km");
-
-                    int duration = truncateInteger(mSavedLine.get(index).getTotalDuration(mSavedResult.getStartStation().getStationName(), mSavedResult.getEndStation().getStationName()));
-                    mDuration.setText("" + duration + " min");
-
-                    Calendar now = Calendar.getInstance();
-                    now.add(Calendar.MINUTE, (waitingTime + duration));
-                    SimpleDateFormat format = new SimpleDateFormat("hh:mm");
-                    String DateToStr = format.format(now.getTime());
-
-                    mArrivalTime.setText(DateToStr);
-
-                    showPath(mSavedResult.getLine().getName(), mSavedResult.getStartStation().getStationName(), mSavedResult.getEndStation().getStationName());
-
-                    IntentIntegrator.forSupportFragment(this).setPrompt("Please, scan the QR code near you to complete your order").initiateScan();
+                    else {
+                        DisplayTravelData();
+                        MySaving().setStationScanned("");
+                    }
                 }
                 else {
                     ShowMyDialog("Error", "You must pick two different stations on the same line");
@@ -253,6 +246,51 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
         }
     }
 
+    public void DisplayTravelData () {
+        // Display the SlidingUpPanel
+        mLayout.setPanelState(SlidingUpPanelLayout.PanelState.COLLAPSED);
+
+        // Adapt the Google map component size to the screen with the SlidingUpPanel below
+        ViewGroup.MarginLayoutParams params = (ViewGroup.MarginLayoutParams) mMapView.getLayoutParams();
+        params.bottomMargin = (int)convertDpToPixel(68, this.getActivity());
+        mMapView.setLayoutParams(params);
+
+        params = (ViewGroup.MarginLayoutParams) fab.getLayoutParams();
+        params.bottomMargin = (int)convertDpToPixel(68, this.getActivity());
+        fab.setLayoutParams(params);
+        fab.setImageDrawable(ContextCompat.getDrawable(this.getActivity(), R.drawable.ic_cancel));
+
+        // Get the index of the line selected by user
+        int index = -1;
+        for (int i=0; i < mSavedLine.size(); i++){
+            if (mSavedLine.get(i).getLineName().equalsIgnoreCase(MySaving().getLine().getName())) {
+                index = i;
+                MySaving().setIndex(index);
+                break;
+            }
+        }
+
+        // Display informations about the trip
+        int waitingTime = 2;
+
+        mWaitingTime.setText("" + waitingTime + " min");
+        mDistance.setText("" + truncateDecimal(mSavedLine.get(index).getTotalDistance(MySaving().getStartStation().getStationName(), MySaving().getEndStation().getStationName()), 2) + " km");
+
+        int duration = truncateInteger(mSavedLine.get(index).getTotalDuration(MySaving().getStartStation().getStationName(), MySaving().getEndStation().getStationName()));
+        mDuration.setText("" + duration + " min");
+
+        Calendar now = Calendar.getInstance();
+        now.add(Calendar.MINUTE, (waitingTime + duration));
+        SimpleDateFormat format = new SimpleDateFormat("hh:mm");
+        String DateToStr = format.format(now.getTime());
+
+        mArrivalTime.setText(DateToStr);
+
+        ((MainActivity) getActivity()).createRequestOnDB(mSavedLine.get(index));
+
+        // Display the path associated to the current trip
+        showPath(MySaving().getLine().getName(), MySaving().getStartStation().getStationName(), MySaving().getEndStation().getStationName());
+    }
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -266,8 +304,8 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
             // get format
             String scanFormat = scanningResult.getFormatName();
 
-            if (scanContent.equalsIgnoreCase(mSavedResult.getStartStation().getStationName())) {
-
+            if (scanContent.equalsIgnoreCase(MySaving().getStartStation().getStationName())) {
+                DisplayTravelData();
             }
             else {
                 ShowMyDialog("Error","You've scanned the wrong code, please try again");
@@ -277,7 +315,7 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
         }
     }
 
-    private void ShowMyDialog (String title, String text) {
+    public void ShowMyDialog (String title, String text) {
         Context context = getActivity();
         AlertDialog ad = new AlertDialog.Builder(context).create();
         ad.setCancelable(false);
@@ -321,7 +359,7 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
 
         mLocationManager =  (LocationManager)getActivity().getSystemService(Context.LOCATION_SERVICE);
         /*mProvider = mLocationManager.getBestProvider(criteria, true);*/
-        mLocationManager.requestLocationUpdates(LocationManager.PASSIVE_PROVIDER, 50, 0, this);
+        mLocationManager.requestLocationUpdates(LocationManager.PASSIVE_PROVIDER, 500, 0, this);
 
         focusOnPosition();
 
@@ -366,8 +404,8 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
 
         PolylineOptions polyLineOptions = new PolylineOptions();
 
-        polyLineOptions.addAll(mSavedLine.get(mSavedResult.getIndex()).getPathPoints(startStation, endStation));
-        polyLineOptions.width(15);
+        polyLineOptions.addAll(mSavedLine.get(MySaving().getIndex()).getPathPoints(startStation, endStation));
+        polyLineOptions.width(25);
         polyLineOptions.color(Color.RED);
         mGoogleMap.addPolyline(polyLineOptions);
     }
@@ -414,7 +452,7 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
             LatLng coordinate = new LatLng(lat, lng);
             CameraPosition cameraPosition;
 
-            if (mSavedResult.getIsTravelling()) {
+            if (MySaving().getIsTravelling()) {
                 cameraPosition = CameraPosition.builder()
                         .target(coordinate)
                         .zoom(20)
@@ -439,15 +477,19 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
     public boolean onMarkerClick(Marker marker) {
         marker.showInfoWindow();
 
-        if (!mSavedResult.getIsTravelling()) {
-            if (mSavedResult.getIsStartSelected()) {
-                mSavedResult.setStartStation(mDBHandler.getStationByName(marker.getSnippet()));
-                mResult.setText(mSavedResult.getStartStation().getStationName());
+        if (!MySaving().getIsTravelling()) {
+            if (MySaving().getIsStartSelected()) {
+                MySaving().setStartStation(mDBHandler.getStationByName(marker.getSnippet()));
+                mResult.setText(MySaving().getStartStation().getStationName());
+                // If there is a station previously scanned and different from the new one selected, reset that one
+                if (!MySaving().getStationScanned().equalsIgnoreCase(MySaving().getStartStation().getStationName())) {
+                    MySaving().setStationScanned("");
+                }
                 endBouton.callOnClick();
             }
             else {
-                mSavedResult.setEndStation(mDBHandler.getStationByName(marker.getSnippet()));
-                mResult.setText(mSavedResult.getEndStation().getStationName());
+                MySaving().setEndStation(mDBHandler.getStationByName(marker.getSnippet()));
+                mResult.setText(MySaving().getEndStation().getStationName());
             }
         }
         return true;
@@ -475,7 +517,7 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
     @Override
     public void onResume() {
         super.onResume();
-        //mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 0, this);
+        //mLocationManager.requestLocationUpdates(LocationManager.PASSIVE_PROVIDER, 500, 0, this);
         mMapView.onResume();
     }
 

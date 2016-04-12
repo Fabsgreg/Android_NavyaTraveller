@@ -13,19 +13,27 @@ import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.telephony.TelephonyManager;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.TextView;
 
+import com.android.volley.AuthFailureError;
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.JsonObjectRequest;
+import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+
+import java.util.HashMap;
+import java.util.Map;
 
 import navya.tech.navyatraveller.Databases.MyDBHandler;
 import navya.tech.navyatraveller.Fragments.GmapFragment;
@@ -36,19 +44,28 @@ import navya.tech.navyatraveller.Fragments.ToolFragment;
 
 public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
 
+    public static final String ipAddress = "10.0.20.34";
+    public static final Integer timeout = 6000;              // Timeout for database loading in millisecond
+
     private Fragment[] fragments;
     private String[] fragmentTAGS;
-    private NavigationView navigationView;
+    public NavigationView navigationView;
+
+    private GmapFragment fragGMap;
+    private QRcodeFragment fragQRCode;
 
     private Handler handler;
-    private Runnable toto;
+    private Runnable timeoutProcess;
 
     private boolean[] DBloaded;
+
+    public static SaveResult saving;
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
         setContentView(R.layout.activity_main);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -67,18 +84,23 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
         DBloaded = new boolean[]{false, false};
 
+        saving = new SaveResult();
 
-        GmapFragment fragGMap = new GmapFragment();
-        QRcodeFragment fragQRCode = new QRcodeFragment();
+
+        fragGMap = new GmapFragment();
+        fragQRCode = new QRcodeFragment();
         GoFragment fragGo = new GoFragment();
         ToolFragment fragTool = new ToolFragment();
 
-        fragments = new Fragment[]{fragQRCode, fragGMap, fragGo, fragTool};
-        fragmentTAGS = new String[]{"QR code","Map","Go","Tools"};
+
+        fragments = new Fragment[]{fragGMap, fragGo, fragQRCode, fragTool};
+        fragmentTAGS = new String[]{"Map","Go","QR code","Tools"};
 
         phpLineRequest(mDBHandler);
 
-        toto = new Runnable() {
+        final Context myContext = this;
+
+        timeoutProcess = new Runnable() {
             @Override
             public void run() {
                 if (DBloaded[0] && DBloaded[1]) {
@@ -91,14 +113,28 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             }
         };
 
+        View header=navigationView.getHeaderView(0);
+        TextView mPhoneNumber = (TextView) header.findViewById(R.id.phone_number);
+
+        TelephonyManager tMgr = (TelephonyManager)this.getSystemService(Context.TELEPHONY_SERVICE);
+        String myPhoneNumber = tMgr.getLine1Number();
+
+        if (myPhoneNumber == null) {
+            myPhoneNumber = "0123456789";
+        }
+
+        mPhoneNumber.setText("Login : "+myPhoneNumber+"");
+
+        saving.setPhoneNumber(myPhoneNumber);
+
         handler = new Handler();
-        handler.postDelayed(toto, 6000);
+        handler.postDelayed(timeoutProcess, timeout);
     }
 
 
     public void phpLineRequest (final MyDBHandler myDB) {
         /// PHP request
-        String showLine = "http://10.0.20.34/navyaTraveller/showLine.php";
+        String showLine = "http://"+ipAddress+"/navyaTraveller/showLine.php";
         RequestQueue requestQueue = Volley.newRequestQueue(getApplicationContext());
         JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.POST, showLine
                 , new Response.Listener<JSONObject>() {
@@ -130,7 +166,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     public void phpStationRequest (final MyDBHandler myDB) {
         /// PHP request
-        String showStation = "http://10.0.20.34/navyaTraveller/showStation.php";
+        String showStation = "http://"+ipAddress+"/navyaTraveller/showStation.php";
         RequestQueue requestQueue = Volley.newRequestQueue(getApplicationContext());
         JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.POST, showStation
                 , new Response.Listener<JSONObject>() {
@@ -149,7 +185,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                         myDB.createStation(stationName, latitude.floatValue(), longitude.floatValue(), lineName);
                     }
                     DBloaded[1] = true;
-                    handler.post(toto);
+                    handler.post(timeoutProcess);
 
                 } catch (JSONException e) {
                     e.printStackTrace();
@@ -164,6 +200,43 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
         });
         requestQueue.add(jsonObjectRequest);
+    }
+
+    public void createRequestOnDB (final SaveLine data) {
+        /// PHP request
+        String createRequest = "http://"+ipAddress+"/navyaTraveller/createRequest.php";
+        RequestQueue requestQueue = Volley.newRequestQueue(getApplicationContext());
+        StringRequest request = new StringRequest(Request.Method.POST, createRequest, new Response.Listener<String>() {
+            @Override
+            public void onResponse(String response) {
+                // Handle success event
+            }
+        }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+
+            }
+        }) {
+
+            @Override
+            protected Map<String, String> getParams() throws AuthFailureError {
+                Map<String,String> parameters  = new HashMap<String, String>();
+
+                String start = saving.getStartStation().getStationName();
+                String end = saving.getEndStation().getStationName();
+
+                parameters.put("start",start);
+                parameters.put("end",end);
+                parameters.put("line",saving.getLine().getName());
+                parameters.put("duration",String.valueOf(data.getTotalDuration(start,end)));
+                parameters.put("distance",String.valueOf(data.getTotalDistance(start,end)));
+                parameters.put("phone_number",saving.getPhoneNumber());
+                parameters.put("state",String.valueOf(1));
+
+                return parameters;
+            }
+        };
+        requestQueue.add(request);
     }
 
 
@@ -218,26 +291,35 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     @Override
     public boolean onNavigationItemSelected(MenuItem item) {
-        FragmentTransaction fragmentTransaction = getSupportFragmentManager().beginTransaction();
-        fragmentTransaction.setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN);
 
         int position = 0;
 
-        switch (item.toString())
-        {
-            case "QR Code" :
-                position = 0;
-                break;
-            case  "Map" :
-                position = 1;
-                break;
-            case  "Go" :
-                position = 2;
-                break;
-            case  "Tools" :
-                position = 3;
-                break;
+        if (saving.getIsTravelling()) {
+            fragGMap.ShowMyDialog("Warning","End your travel before to switch between Tabs");
+            //navigationView.getMenu().getItem(0).setChecked(true);
+            //onNavigationItemSelected(navigationView.getMenu().getItem(0));
+
         }
+        else {
+            switch (item.toString())
+            {
+                case "Map" :
+                    position = 0;
+                    break;
+                case  "Go" :
+                    position = 1;
+                    break;
+                case  "QR code" :
+                    position = 2;
+                    break;
+                case  "Tools" :
+                    position = 3;
+                    break;
+            }
+        }
+
+        FragmentTransaction fragmentTransaction = getSupportFragmentManager().beginTransaction();
+        fragmentTransaction.setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN);
 
         // Add the fragments only once if array haven't fragment
         if (getSupportFragmentManager().findFragmentByTag(fragmentTAGS[position]) == null) {
@@ -248,12 +330,21 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         for(int catx=0;catx<fragments.length;catx++)
         {
             if(catx == position) {
+
                 fragmentTransaction.show(fragments[catx]);
+                if ((fragments[catx] == fragGMap) && (!saving.getWasGmap())) {
+                    fragGMap.Update();
+                }
+                else if (fragments[catx] == fragQRCode) {
+                    // Reset fragment
+                    fragmentTransaction.detach(fragments[catx]);
+                    fragmentTransaction.attach(fragments[catx]);
+                }
             }
             else {
                 fragmentTransaction.hide(fragments[catx]);
-            };
-        };
+            }
+        }
         fragmentTransaction.commit();
 
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
@@ -261,6 +352,5 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
         return true;
     }
-
 
 }
