@@ -227,7 +227,7 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
         }
     }
 
-    private Integer truncateInteger (double x) {
+    private Integer truncateDouble (double x) {
         double tmp = x - ((int) x);
         if (tmp > 0.5) {
             return (((int)x) + 1);
@@ -276,12 +276,12 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
         mWaitingTime.setText("" + waitingTime + " min");
         mDistance.setText("" + truncateDecimal(mSavedLine.get(index).getTotalDistance(MySaving().getStartStation().getStationName(), MySaving().getEndStation().getStationName()), 2) + " km");
 
-        int duration = truncateInteger(mSavedLine.get(index).getTotalDuration(MySaving().getStartStation().getStationName(), MySaving().getEndStation().getStationName()));
+        int duration = truncateDouble(mSavedLine.get(index).getTotalDuration(MySaving().getStartStation().getStationName(), MySaving().getEndStation().getStationName()));
         mDuration.setText("" + duration + " min");
 
         Calendar now = Calendar.getInstance();
         now.add(Calendar.MINUTE, (waitingTime + duration));
-        SimpleDateFormat format = new SimpleDateFormat("hh:mm");
+        SimpleDateFormat format = new SimpleDateFormat("HH:mm");
         String DateToStr = format.format(now.getTime());
 
         mArrivalTime.setText(DateToStr);

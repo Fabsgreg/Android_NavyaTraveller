@@ -34,7 +34,7 @@ public class QRcodeFragment extends Fragment {
 
         mDBHandler = new MyDBHandler(this.getActivity());
 
-        IntentIntegrator.forSupportFragment(this).initiateScan();
+        IntentIntegrator.forSupportFragment(this).setPrompt("Please, scan the QR code near you to complete your order").initiateScan();
 
         return v;
     }
@@ -46,9 +46,6 @@ public class QRcodeFragment extends Fragment {
     @Override
     public void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
-
-        // Remember the current text, to restore if we later restart.
-        //outState.putCharSequence("text", mTextView.getText());
     }
 
 

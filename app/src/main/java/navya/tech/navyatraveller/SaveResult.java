@@ -46,7 +46,6 @@ public class SaveResult {
         isTravelling = false;
         currentIndexOfSavedLine = 0;
         stationScanned = "";
-        phoneNumber = "";
     }
 
     public boolean isGood () {

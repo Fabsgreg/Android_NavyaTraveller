@@ -39,7 +39,7 @@ import navya.tech.navyatraveller.Databases.MyDBHandler;
 import navya.tech.navyatraveller.Fragments.GmapFragment;
 import navya.tech.navyatraveller.Fragments.GoFragment;
 import navya.tech.navyatraveller.Fragments.QRcodeFragment;
-import navya.tech.navyatraveller.Fragments.ToolFragment;
+import navya.tech.navyatraveller.Fragments.HistoryFragment;
 
 
 public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
@@ -53,6 +53,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     private GmapFragment fragGMap;
     private QRcodeFragment fragQRCode;
+    private HistoryFragment fragHistory;
 
     private Handler handler;
     private Runnable timeoutProcess;
@@ -90,11 +91,11 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         fragGMap = new GmapFragment();
         fragQRCode = new QRcodeFragment();
         GoFragment fragGo = new GoFragment();
-        ToolFragment fragTool = new ToolFragment();
+        fragHistory = new HistoryFragment();
 
 
-        fragments = new Fragment[]{fragGMap, fragGo, fragQRCode, fragTool};
-        fragmentTAGS = new String[]{"Map","Go","QR code","Tools"};
+        fragments = new Fragment[]{fragGMap, fragGo, fragQRCode, fragHistory};
+        fragmentTAGS = new String[]{"Map","Go","QR code","History"};
 
         phpLineRequest(mDBHandler);
 
@@ -312,7 +313,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 case  "QR code" :
                     position = 2;
                     break;
-                case  "Tools" :
+                case  "History" :
                     position = 3;
                     break;
             }
@@ -336,6 +337,11 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     fragGMap.Update();
                 }
                 else if (fragments[catx] == fragQRCode) {
+                    // Reset fragment
+                    fragmentTransaction.detach(fragments[catx]);
+                    fragmentTransaction.attach(fragments[catx]);
+                }
+                else if (fragments[catx] == fragHistory) {
                     // Reset fragment
                     fragmentTransaction.detach(fragments[catx]);
                     fragmentTransaction.attach(fragments[catx]);
