@@ -155,8 +155,8 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
         // Fire click event on Start button
         if (v.getId() == R.id.start_button){
             if (!MySaving().getIsTravelling()) {
-                startBouton.setBackgroundColor(0xff3464d0);
-                endBouton.setBackgroundColor(0xff4977dc);
+                startBouton.setBackgroundColor(0xff547192);
+                endBouton.setBackgroundColor(0xff6687ae);
                 MySaving().setIsStartSelected(true);
                 MySaving().setIsEndSelected(false);
                 // Check if a station has been selected before
@@ -173,8 +173,8 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
         // Fire click event on End button
         else if (v.getId() == R.id.end_button){
             if (!MySaving().getIsTravelling()) {
-                startBouton.setBackgroundColor(0xff4977dc);
-                endBouton.setBackgroundColor(0xff3464d0);
+                startBouton.setBackgroundColor(0xff6687ae);
+                endBouton.setBackgroundColor(0xff547192);
                 MySaving().setIsStartSelected(false);
                 MySaving().setIsEndSelected(true);
                 // Check if a station has been selected before
@@ -296,13 +296,10 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
 
         IntentResult scanningResult = IntentIntegrator.parseActivityResult(requestCode, resultCode, data);
-        if (scanningResult != null) {
+        if (resultCode != 0) {
 
             // get message
             String scanContent = scanningResult.getContents();
-
-            // get format
-            String scanFormat = scanningResult.getFormatName();
 
             if (scanContent.equalsIgnoreCase(MySaving().getStartStation().getStationName())) {
                 DisplayTravelData();
@@ -310,9 +307,10 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
             else {
                 ShowMyDialog("Error","You've scanned the wrong code, please try again");
                 mLayout.setPanelState(SlidingUpPanelLayout.PanelState.HIDDEN);
-                fab.callOnClick();
+                //fab.callOnClick();
             }
         }
+        fab.callOnClick();
     }
 
     public void ShowMyDialog (String title, String text) {

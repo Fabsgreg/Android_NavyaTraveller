@@ -114,15 +114,6 @@ public class GoFragment extends Fragment implements View.OnClickListener, Adapte
                 });
             }
             else {
-/*                ad.setTitle("Congratulation");
-                ad.setMessage("Your shuttle has been requested");
-                ad.setButton(-1, "OK", new DialogInterface.OnClickListener() {
-
-                    public void onClick(DialogInterface dialog, int which) {
-                        dialog.dismiss();
-                    }
-                });*/
-
                 Station startStation = mDBHandler.getStationByName(goSpinnerStart.getSelectedItem().toString());
                 Station endStation = mDBHandler.getStationByName(goSpinnerEnd.getSelectedItem().toString());
 

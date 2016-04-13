@@ -53,9 +53,10 @@ public class QRcodeFragment extends Fragment {
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
 
         IntentResult scanningResult = IntentIntegrator.parseActivityResult(requestCode, resultCode, data);
-        if (scanningResult != null) {
 
+        if (resultCode != 0) {
             // Get back data scanned
+
             String scanContent = scanningResult.getContents();
 
             Station stationScanned = mDBHandler.getStationByName(scanContent);
@@ -66,10 +67,9 @@ public class QRcodeFragment extends Fragment {
             MySaving().setStationScanned(scanContent);
 
             MySaving().setPreviousFragment("QR Code");
-
-            ((MainActivity) getActivity()).navigationView.getMenu().getItem(0).setChecked(true);
-            ((MainActivity) getActivity()).onNavigationItemSelected(((MainActivity) getActivity()).navigationView.getMenu().getItem(0));
         }
+        ((MainActivity) getActivity()).navigationView.getMenu().getItem(0).setChecked(true);
+        ((MainActivity) getActivity()).onNavigationItemSelected(((MainActivity) getActivity()).navigationView.getMenu().getItem(0));
     }
 
     public SaveResult MySaving() {
