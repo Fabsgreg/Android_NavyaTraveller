@@ -126,6 +126,9 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
         fab = (FloatingActionButton) v.findViewById(R.id.fab);
         fab.setOnClickListener(this);
 
+        mLocationManager =  (LocationManager)getActivity().getSystemService(Context.LOCATION_SERVICE);
+        mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, this);
+
         return v;
     }
 
@@ -303,11 +306,11 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
 
             if (scanContent.equalsIgnoreCase(MySaving().getStartStation().getStationName())) {
                 DisplayTravelData();
+                return;
             }
             else {
                 ShowMyDialog("Error","You've scanned the wrong code, please try again");
                 mLayout.setPanelState(SlidingUpPanelLayout.PanelState.HIDDEN);
-                //fab.callOnClick();
             }
         }
         fab.callOnClick();
@@ -348,16 +351,6 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
         mGoogleMap.getUiSettings().setMapToolbarEnabled(true);
         mGoogleMap.setBuildingsEnabled(true);
         mGoogleMap.setOnMarkerClickListener(this);
-
-/*        Criteria criteria = new Criteria();
-        criteria.setAccuracy(Criteria.ACCURACY_FINE);
-        criteria.setPowerRequirement(Criteria.POWER_HIGH);
-        criteria.setAltitudeRequired(false);
-        criteria.setBearingRequired(true);*/
-
-        mLocationManager =  (LocationManager)getActivity().getSystemService(Context.LOCATION_SERVICE);
-        /*mProvider = mLocationManager.getBestProvider(criteria, true);*/
-        mLocationManager.requestLocationUpdates(LocationManager.PASSIVE_PROVIDER, 500, 0, this);
 
         focusOnPosition();
 
@@ -443,7 +436,8 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
     }
 
     private void focusOnPosition () {
-        Location location = mLocationManager.getLastKnownLocation(LocationManager.PASSIVE_PROVIDER);
+        Location location = mLocationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+
         if (location != null) {
             double lat = location.getLatitude();
             double lng = location.getLongitude();
@@ -505,7 +499,6 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
 
     @Override
     public void onProviderEnabled(String provider){
-
     }
 
     @Override
@@ -515,7 +508,7 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
     @Override
     public void onResume() {
         super.onResume();
-        //mLocationManager.requestLocationUpdates(LocationManager.PASSIVE_PROVIDER, 500, 0, this);
+        mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, this);
         mMapView.onResume();
     }
 
