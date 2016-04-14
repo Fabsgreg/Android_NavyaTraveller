@@ -60,6 +60,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     private boolean[] DBloaded;
 
+    private boolean isNavViewBlocked;
+
     public static SaveResult saving;
 
 
@@ -113,6 +115,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 else {
                     ShowMyDialog("Your internet connection is not available", "Please, check your network before to launch the app");
                 }
+                handler.removeCallbacks(timeoutProcess);
             }
         };
 
@@ -129,6 +132,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         mPhoneNumber.setText("Login : "+myPhoneNumber+"");
 
         saving.setPhoneNumber(myPhoneNumber);
+
+        isNavViewBlocked = false;
 
         handler = new Handler();
         handler.postDelayed(timeoutProcess, timeout);
@@ -299,11 +304,16 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
         int position = 0;
 
-        if (saving.getIsTravelling()) {
+        if (saving.getIsTravelling() && !isNavViewBlocked) {
+            isNavViewBlocked = true;
+            navigationView.getMenu().getItem(0).setChecked(true);
+            onNavigationItemSelected(navigationView.getMenu().getItem(0).setChecked(true));
+            navigationView.setCheckedItem(0);
+            return false;
+        }
+        else if (isNavViewBlocked) {
+            isNavViewBlocked = false;
             fragGMap.ShowMyDialog("Warning","End your travel before to switch between Tabs");
-            //navigationView.getMenu().getItem(0).setChecked(true);
-            //onNavigationItemSelected(navigationView.getMenu().getItem(0));
-
         }
         else {
             switch (item.toString())
