@@ -24,7 +24,6 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.Map;
 
 import navya.tech.navyatraveller.MainActivity;
@@ -59,21 +58,21 @@ public class HistoryFragment extends Fragment {
 
     public void showRequestHistory () {
         /// PHP request
-        String createRequest = "http://"+((MainActivity) getActivity()).ipAddress+"/navyaTraveller/showRequestHistory.php";
+        String createRequest = "http://"+ MainActivity.ipAddress +"/navyaTraveller/showRequestHistory.php";
         RequestQueue requestQueue = Volley.newRequestQueue(this.getContext().getApplicationContext());
         StringRequest request = new StringRequest(Request.Method.POST, createRequest, new Response.Listener<String>() {
             @Override
             public void onResponse(String response) {
                 // Handle success event
 
-                List<String> myLines = new ArrayList<String>();
+                List<String> myLines = new ArrayList<>();
                 double duration = 0;
                 double distance = 0;
 
                 try {
                     JSONObject jObject = new JSONObject(response);
                     JSONArray requests = jObject.getJSONArray("requests");
-                    int nbr = 0;
+                    int nbr;
                     for (nbr=0; nbr < requests.length(); nbr++) {
                         JSONObject request = requests.getJSONObject(nbr);
                         myLines.add(request.getString("line"));
@@ -90,13 +89,12 @@ public class HistoryFragment extends Fragment {
                     mLine.setText(findMostRecursiveItem(myLines));
                     mDuration.setText("" + format.format(time.getTime()) +"");
                     mDistance.setText("" + truncateDecimal(distance,2) +" km");
-                    mResult.setText("Congratulations, you saved " + truncateDecimal((Double)(distance * 0.070),3) + " kg of CO2 by travelling with Navya");
+                    mResult.setText("Congratulations, you saved " + truncateDecimal(distance * 0.070,3) + " kg of CO2 by travelling with Navya");
 
                 }
                 catch (Exception e) {
                     e.printStackTrace();
                 }
-                return;
             }
         }, new Response.ErrorListener() {
             @Override
@@ -107,9 +105,9 @@ public class HistoryFragment extends Fragment {
 
             @Override
             protected Map<String, String> getParams() throws AuthFailureError {
-                Map<String,String> parameters  = new HashMap<String, String>();
+                Map<String,String> parameters  = new HashMap<>();
 
-                parameters.put("number",((MainActivity) getActivity()).saving.getPhoneNumber());
+                parameters.put("number", MainActivity.saving.getPhoneNumber());
 
                 return parameters;
             }
@@ -118,13 +116,11 @@ public class HistoryFragment extends Fragment {
     }
 
     private String findMostRecursiveItem (List<String> myString) {
-        List<String> tmp = new ArrayList<String>();
+        List<String> tmp = new ArrayList<>();
 
-        int index = 0;
         for(int i=0; i<myString.size(); i++) {
             if (!tmp.contains(myString.get(i))) {
                 tmp.add(myString.get(i));
-                index++;
             }
         }
 

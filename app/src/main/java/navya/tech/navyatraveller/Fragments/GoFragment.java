@@ -30,9 +30,10 @@ import navya.tech.navyatraveller.SaveResult;
  */
 public class GoFragment extends Fragment implements View.OnClickListener, AdapterView.OnItemSelectedListener {
 
-    private Button goBouton;
-    private Spinner goSpinnerLine ,goSpinnerStart, goSpinnerEnd;
-    private ArrayAdapter<String> goSpLinAdap, goSpStaAdap, goSpEndAdap;
+    private Spinner goSpinnerStart;
+    private Spinner goSpinnerEnd;
+    private ArrayAdapter<String> goSpStaAdap;
+    private ArrayAdapter<String> goSpEndAdap;
 
     private MyDBHandler mDBHandler;
 
@@ -43,8 +44,8 @@ public class GoFragment extends Fragment implements View.OnClickListener, Adapte
 
         mDBHandler = new MyDBHandler(this.getActivity());
 
-        List<Line> myLines = new ArrayList<Line>();
-        List<String> values = new ArrayList<String>();
+        List<Line> myLines;
+        List<String> values = new ArrayList<>();
 
         myLines = mDBHandler.getAllLines();
         if (myLines != null && !myLines.isEmpty()) {
@@ -53,25 +54,25 @@ public class GoFragment extends Fragment implements View.OnClickListener, Adapte
             }
         }
 
-        goSpinnerLine = (Spinner) v.findViewById(R.id.spinnerLine);
-        goSpLinAdap = new ArrayAdapter<String>(this.getActivity(), android.R.layout.simple_spinner_item, values);
+        Spinner goSpinnerLine = (Spinner) v.findViewById(R.id.spinnerLine);
+        ArrayAdapter<String> goSpLinAdap = new ArrayAdapter<>(this.getActivity(), android.R.layout.simple_spinner_item, values);
         goSpLinAdap.setDropDownViewResource(android.R.layout.simple_dropdown_item_1line);
         goSpinnerLine.setAdapter(goSpLinAdap);
         goSpinnerLine.setOnItemSelectedListener(this);
 
         goSpinnerStart = (Spinner) v.findViewById(R.id.spinnerStart);
-        goSpStaAdap = new ArrayAdapter<String>(this.getActivity(), android.R.layout.simple_spinner_item, new ArrayList<String>());
+        goSpStaAdap = new ArrayAdapter<>(this.getActivity(), android.R.layout.simple_spinner_item, new ArrayList<String>());
         goSpStaAdap.setDropDownViewResource(android.R.layout.simple_dropdown_item_1line);
         goSpinnerStart.setAdapter(goSpStaAdap);
         goSpinnerStart.setOnItemSelectedListener(this);
 
         goSpinnerEnd = (Spinner) v.findViewById(R.id.spinnerEnd);
-        goSpEndAdap = new ArrayAdapter<String>(this.getActivity(), android.R.layout.simple_spinner_item, new ArrayList<String>());
+        goSpEndAdap = new ArrayAdapter<>(this.getActivity(), android.R.layout.simple_spinner_item, new ArrayList<String>());
         goSpEndAdap.setDropDownViewResource(android.R.layout.simple_dropdown_item_1line);
         goSpinnerEnd.setAdapter(goSpEndAdap);
         goSpinnerEnd.setOnItemSelectedListener(this);
 
-        goBouton = (Button) v.findViewById(R.id.go_button);
+        Button goBouton = (Button) v.findViewById(R.id.go_button);
         goBouton.setOnClickListener(this);
 
 
@@ -83,16 +84,6 @@ public class GoFragment extends Fragment implements View.OnClickListener, Adapte
         super.onViewCreated(view, savedInstanceState);
     }
 
-    public void MyClick(View v) {
-        switch(v.getId()) {
-            case R.id.go_button:
-                int a = 1;
-                break;
-            // Just like you were doing
-        }
-    }
-
-
     @Override
     public void onClick(View v) {
         //do what you want to do when mybutton is clicked
@@ -103,7 +94,7 @@ public class GoFragment extends Fragment implements View.OnClickListener, Adapte
             AlertDialog ad = new AlertDialog.Builder(context).create();
             ad.setCancelable(false);
 
-            if (goSpinnerStart.getSelectedItem().toString() == goSpinnerEnd.getSelectedItem().toString()){
+            if (goSpinnerStart.getSelectedItem().toString().equalsIgnoreCase(goSpinnerEnd.getSelectedItem().toString())){
                 ad.setTitle("Error");
                 ad.setMessage("You must pick two different stations");
                 ad.setButton(-1, "OK", new DialogInterface.OnClickListener() {
@@ -134,7 +125,7 @@ public class GoFragment extends Fragment implements View.OnClickListener, Adapte
     }
 
     public SaveResult MySaving() {
-        return ((MainActivity) getActivity()).saving;
+        return MainActivity.saving;
     }
 
     @Override
@@ -144,8 +135,7 @@ public class GoFragment extends Fragment implements View.OnClickListener, Adapte
 
         if (spinner.getId() == R.id.spinnerLine)
         {
-            List<Station> myStations = new ArrayList<Station>();
-            List<String> values = new ArrayList<String>();
+            List<Station> myStations;
 
             goSpStaAdap.clear();
             goSpEndAdap.clear();

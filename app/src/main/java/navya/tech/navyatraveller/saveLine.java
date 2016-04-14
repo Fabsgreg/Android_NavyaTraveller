@@ -3,10 +3,7 @@ package navya.tech.navyatraveller;
 import com.google.android.gms.maps.model.LatLng;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-
-import navya.tech.navyatraveller.Databases.Station;
 
 /**
  * Created by gregoire.frezet on 05/04/2016.
@@ -14,22 +11,20 @@ import navya.tech.navyatraveller.Databases.Station;
 public class SaveLine {
     private List<Double> distance;          // in meter
     private List<Double> duration;          // in minute
-    private List<Integer> waypointOrder;
     private String lineName;
     private List<String> stationsName;
     private List<List<LatLng>> route;
 
     public SaveLine() {
-        distance = new ArrayList<Double>();
-        duration = new ArrayList<Double>();
-        waypointOrder = new ArrayList<Integer>();
+        distance = new ArrayList<>();
+        duration = new ArrayList<>();
         lineName = null;
-        stationsName = new ArrayList<String>();
-        route = new ArrayList<List<LatLng>>();
+        stationsName = new ArrayList<>();
+        route = new ArrayList<>();
     }
 
     public List<LatLng> getPathPoints (String startStation, String endStation) {
-        List<LatLng> tmp = new ArrayList<LatLng>();
+        List<LatLng> tmp = new ArrayList<>();
         int indexStart = stationsName.indexOf(startStation);
         int indexEnd = stationsName.indexOf(endStation);
 
@@ -54,7 +49,6 @@ public class SaveLine {
             route.add(new ArrayList<LatLng>());
             route.get(step).add(point);
         }
-        return;
     }
 
     public double getTotalDistance(String startStation, String endStation) {
@@ -90,8 +84,6 @@ public class SaveLine {
                 result += duration.get(i);
             }
         }
-
-
         return result;
     }
 
@@ -118,7 +110,7 @@ public class SaveLine {
     }
 
     public List<LatLng> getAllPoints () {
-        List<LatLng> tmp = new ArrayList<LatLng>();
+        List<LatLng> tmp = new ArrayList<>();
         for (int i=0; i<route.size(); i++) {
             tmp.addAll(route.get(i));
         }
@@ -131,9 +123,5 @@ public class SaveLine {
 
     public void addDistance (Integer _distance) {
         distance.add(_distance.doubleValue() / 1000.0);
-    }
-
-    public void addWaypoint (Integer _waypoint) {
-        waypointOrder.add(_waypoint);
     }
 }

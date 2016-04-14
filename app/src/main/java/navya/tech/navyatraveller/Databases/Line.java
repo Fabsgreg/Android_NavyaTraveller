@@ -12,10 +12,6 @@ public class Line implements Serializable {
 
     public Line() {}
 
-    public Line(String name) {
-        this._name = name;
-    }
-
     public long getId() {
         return _id;
     }

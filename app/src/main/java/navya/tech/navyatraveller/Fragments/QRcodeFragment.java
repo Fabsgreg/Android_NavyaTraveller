@@ -7,17 +7,12 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.AlertDialog;
 import android.view.LayoutInflater;
-import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
-import android.widget.ImageView;
-import android.widget.TextView;
 
 import com.google.zxing.integration.android.IntentIntegrator;
 import com.google.zxing.integration.android.IntentResult;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import navya.tech.navyatraveller.Databases.MyDBHandler;
@@ -45,10 +40,6 @@ public class QRcodeFragment extends Fragment {
         return v;
     }
 
-    public void LaunchCamera () {
-        IntentIntegrator.forSupportFragment(this).initiateScan();
-    }
-
     @Override
     public void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
@@ -66,7 +57,7 @@ public class QRcodeFragment extends Fragment {
             String scanContent = scanningResult.getContents();
 
             Boolean isStationExisting = false;
-            List<Station> allStations = new ArrayList<Station>();
+            List<Station> allStations;
             allStations = mDBHandler.getAllStations();
             for (Station s : allStations) {
                 if (scanContent.equalsIgnoreCase(s.getStationName())) {
@@ -93,7 +84,7 @@ public class QRcodeFragment extends Fragment {
     }
 
     public SaveResult MySaving() {
-        return ((MainActivity) getActivity()).saving;
+        return MainActivity.saving;
     }
 
     public void ShowMyDialog (String title, String text) {

@@ -15,12 +15,6 @@ public class Station implements Serializable {
 
     public Station() {}
 
-    public Station(String name, float _lat, float _lng) {
-        this._name = name;
-        this._lat = _lat;
-        this._lng = _lng;
-    }
-
     public long getId() {
         return _id;
     }

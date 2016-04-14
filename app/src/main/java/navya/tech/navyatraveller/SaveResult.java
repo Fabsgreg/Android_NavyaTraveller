@@ -11,7 +11,6 @@ public class SaveResult {
     private Station endStation;
     private Line line;
     private boolean isStartSelected;
-    private boolean isEndSelected;
     private boolean isTravelling;
     private int currentIndexOfSavedLine;
 
@@ -27,7 +26,6 @@ public class SaveResult {
         endStation = new Station();
         line = new Line();
         isStartSelected = true;
-        isEndSelected = false;
         isTravelling = false;
         currentIndexOfSavedLine = 0;
         wasGmap = false;
@@ -42,7 +40,6 @@ public class SaveResult {
         endStation = new Station();
         line = new Line();
         isStartSelected = true;
-        isEndSelected = false;
         isTravelling = false;
         currentIndexOfSavedLine = 0;
         stationScanned = "";
@@ -99,14 +96,6 @@ public class SaveResult {
         return isStartSelected;
     }
 
-    public void setIsEndSelected (boolean _state) {
-        isEndSelected = _state;
-    }
-
-    public boolean getIsEndSelected () {
-        return isEndSelected;
-    }
-
     public void setStartStation (Station _station) {
         startStation = _station;
     }
@@ -139,15 +128,15 @@ public class SaveResult {
         return  currentIndexOfSavedLine;
     }
 
-    public void setWasGmap (boolean _state) { wasGmap = _state; }
+    //public void setWasGmap (boolean _state) { wasGmap = _state; }
 
     public boolean getWasGmap () { return wasGmap; }
 
-    public void setWasQRcode (boolean _state) { wasQRcode = _state; }
+    //public void setWasQRcode (boolean _state) { wasQRcode = _state; }
 
     public boolean getWasQRcode () { return wasQRcode; }
 
-    public void setWasGo (boolean _state) { wasGo = _state; }
+    //public void setWasGo (boolean _state) { wasGo = _state; }
 
     public boolean getWasGo () { return wasGo; }
 

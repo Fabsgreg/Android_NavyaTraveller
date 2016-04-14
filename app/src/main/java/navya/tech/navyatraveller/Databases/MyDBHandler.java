@@ -3,11 +3,8 @@ package navya.tech.navyatraveller.Databases;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
-import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
-import android.database.sqlite.SQLiteException;
 import android.database.sqlite.SQLiteOpenHelper;
-import android.util.Log;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -55,7 +52,7 @@ public class MyDBHandler extends SQLiteOpenHelper {
 
 
     public MyDBHandler(Context context) {
-        super(context, DATABASE_NAME, null, DATABASE_VERSION);;
+        super(context, DATABASE_NAME, null, DATABASE_VERSION);
     }
 
     @Override
@@ -101,8 +98,8 @@ public class MyDBHandler extends SQLiteOpenHelper {
         return newLine;
     }
 
-    public void deleteLine(Line line) {
-        SQLiteDatabase db = this.getWritableDatabase();
+/*    public void deleteLine(Line line) {
+        SQLiteDatabase db;
         String lineName = line.getName();
 
         // delete all stations of this companyline
@@ -117,12 +114,12 @@ public class MyDBHandler extends SQLiteOpenHelper {
         db = this.getWritableDatabase();
         db.delete(TABLE_LINES, COLUMN_LINE_ID + " = " + line.getId(), null);
         db.close();
-    }
+    }*/
 
 
     public List<Line> getAllLines() {
         SQLiteDatabase db = this.getWritableDatabase();
-        List<Line> listLines = new ArrayList<Line>();
+        List<Line> listLines = new ArrayList<>();
 
         Cursor cursor = db.query(TABLE_LINES, _AllColumnsLine, null, null, null, null, null);
         if (cursor != null) {
@@ -179,16 +176,16 @@ public class MyDBHandler extends SQLiteOpenHelper {
         return newStation;
     }
 
-    public void deleteStation(Station station) {
+/*    public void deleteStation(Station station) {
         SQLiteDatabase db = this.getWritableDatabase();
         long id = station.getId();
 
         db.delete(TABLE_STATIONS, COLUMN_STATION_ID + " = " + id, null);
         db.close();
-    }
+    }*/
 
     public List<Station> getAllStations() {
-        List<Station> listStations = new ArrayList<Station>();
+        List<Station> listStations = new ArrayList<>();
         SQLiteDatabase db = this.getWritableDatabase();
 
         Cursor cursor = db.query(TABLE_STATIONS, _AllColumnsStation, null, null, null, null, null);
@@ -206,7 +203,7 @@ public class MyDBHandler extends SQLiteOpenHelper {
     }
 
     public List<Station> getStationsOfLine(String lineName) {
-        List<Station> listStations = new ArrayList<Station>();
+        List<Station> listStations = new ArrayList<>();
         SQLiteDatabase db = this.getWritableDatabase();
 
         Cursor cursor = db.query(TABLE_STATIONS, _AllColumnsStation, COLUMN_STATION_LINE_NAME + " = ?", new String[] { lineName }, null, null, null);
@@ -223,18 +220,14 @@ public class MyDBHandler extends SQLiteOpenHelper {
         return listStations;
     }
 
-    public List<Station> getStationsOfLineBetween(String lineName, String startStation, String endStation) {
-        List<Station> listStations = new ArrayList<Station>();
+    public List<Station> getStationsOfLineBetween(String lineName, String startStation, String endStation) throws Exception {
+        List<Station> listStations = new ArrayList<>();
         SQLiteDatabase db = this.getWritableDatabase();
 
-        Cursor cursor = null;
-        try {
-            cursor = db.rawQuery("SELECT * FROM " + TABLE_STATIONS + " WHERE " + COLUMN_STATION_LINE_NAME + " = '"+lineName+"' AND (" + COLUMN_STATION_NAME + " BETWEEN '"+startStation+"' AND '"+endStation+"')", null);
-            if (cursor.getCount() == 0) {
-                cursor = db.rawQuery("SELECT * FROM " + TABLE_STATIONS + " WHERE " + COLUMN_STATION_LINE_NAME + " = '"+lineName+"' AND (" + COLUMN_STATION_NAME + " BETWEEN '"+endStation+"' AND '"+startStation+"')", null);
-            }
-        }
-        catch (Exception e){
+        Cursor cursor;
+        cursor = db.rawQuery("SELECT * FROM " + TABLE_STATIONS + " WHERE " + COLUMN_STATION_LINE_NAME + " = '"+lineName+"' AND (" + COLUMN_STATION_NAME + " BETWEEN '"+startStation+"' AND '"+endStation+"')", null);
+        if (cursor.getCount() == 0) {
+            cursor = db.rawQuery("SELECT * FROM " + TABLE_STATIONS + " WHERE " + COLUMN_STATION_LINE_NAME + " = '"+lineName+"' AND (" + COLUMN_STATION_NAME + " BETWEEN '"+endStation+"' AND '"+startStation+"')", null);
         }
 
         cursor.moveToFirst();

@@ -1,6 +1,5 @@
 package navya.tech.navyatraveller.Fragments;
 
-import android.location.Criteria;
 import android.support.v4.app.Fragment;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -60,12 +59,12 @@ import navya.tech.navyatraveller.SaveResult;
 /**
  * Created by gregoire.frezet on 24/03/2016.
  */
+
 public class GmapFragment extends Fragment implements OnMapReadyCallback, LocationListener, View.OnClickListener, GoogleMap.OnMarkerClickListener {
 
     private MapView mMapView;
     private GoogleMap mGoogleMap;
     private LocationManager mLocationManager;
-    private String mProvider;
 
     private TextView mArrivalTime;
     private TextView mWaitingTime;
@@ -94,7 +93,7 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View v = inflater.inflate(R.layout.gmap_fragment, container, false);
 
-        mSavedLine = new ArrayList<SaveLine>();
+        mSavedLine = new ArrayList<>();
 
         mMapView = (MapView) v.findViewById(R.id.map);
         mMapView.onCreate(savedInstanceState);
@@ -132,14 +131,11 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
         return v;
     }
 
-    public SaveResult MySaving() {
-        return ((MainActivity) getActivity()).saving;
-    }
+    private SaveResult MySaving() {return MainActivity.saving;}
 
     @Override
     public void onViewCreated(View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-
     }
 
     public void Update () {
@@ -161,7 +157,6 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
                 startBouton.setBackgroundColor(0xff547192);
                 endBouton.setBackgroundColor(0xff6687ae);
                 MySaving().setIsStartSelected(true);
-                MySaving().setIsEndSelected(false);
                 // Check if a station has been selected before
                 if (MySaving().getStartStation().getStationName() != null) {
                     // If yes, memorize this station as starting point
@@ -179,7 +174,6 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
                 startBouton.setBackgroundColor(0xff6687ae);
                 endBouton.setBackgroundColor(0xff547192);
                 MySaving().setIsStartSelected(false);
-                MySaving().setIsEndSelected(true);
                 // Check if a station has been selected before
                 if (MySaving().getEndStation().getStationName() != null) {
                     // If yes, memorize this station as ending point
@@ -334,8 +328,7 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
     private static float convertDpToPixel(float dp, Context context){
         Resources resources = context.getResources();
         DisplayMetrics metrics = resources.getDisplayMetrics();
-        float px = dp * ((float)metrics.densityDpi / DisplayMetrics.DENSITY_DEFAULT);
-        return px;
+        return (dp * ((float)metrics.densityDpi / DisplayMetrics.DENSITY_DEFAULT));
     }
 
 
@@ -354,8 +347,8 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
 
         focusOnPosition();
 
-        List<Station> myStations = new ArrayList<Station>();
-        List<Line> myLines = new ArrayList<Line>();
+        List<Station> myStations;
+        List<Line> myLines;
 
         float colorMarker = 0.0F;
         myLines = mDBHandler.getAllLines();
@@ -381,16 +374,23 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
 
     private void showPath(String line, String startStation, String endStation) {
         mGoogleMap.clear();
-        List<Station> myStations = mDBHandler.getStationsOfLineBetween(line,startStation,endStation);
+        List<Station> myStations = null;
+        try {
+            myStations = mDBHandler.getStationsOfLineBetween(line,startStation,endStation);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
         float colorMarker = 30.0F;
 
-        for (Station s : myStations) {
-            mGoogleMap.addMarker(new MarkerOptions()
-                    .icon(BitmapDescriptorFactory.defaultMarker(colorMarker))
-                    .title(s.getLine().getName())
-                    .snippet(s.getStationName())
-                    .position(new LatLng(s.getLat(), s.getLng())));
+        if (myStations != null) {
+            for (Station s : myStations) {
+                mGoogleMap.addMarker(new MarkerOptions()
+                        .icon(BitmapDescriptorFactory.defaultMarker(colorMarker))
+                        .title(s.getLine().getName())
+                        .snippet(s.getStationName())
+                        .position(new LatLng(s.getLat(), s.getLng())));
+            }
         }
 
         PolylineOptions polyLineOptions = new PolylineOptions();
@@ -404,8 +404,8 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
     private void showEverything() {
         mGoogleMap.clear();
 
-        List<Station> myStations = new ArrayList<Station>();
-        List<Line> myLines = new ArrayList<Line>();
+        List<Station> myStations;
+        List<Line> myLines;
 
         float colorMarker = 0.0F;
         myLines = mDBHandler.getAllLines();
@@ -554,9 +554,7 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
         String sensor = "sensor=false";
         String params = waypoints + "&" + sensor;
         String output = "json";
-        String url = "https://maps.googleapis.com/maps/api/directions/"
-                + output + "?" + origin + destination + params;
-        return url;
+        return ("https://maps.googleapis.com/maps/api/directions/" + output + "?" + origin + destination + params);
     }
 
     private class ReadTask extends AsyncTask<String, Void, String> {
