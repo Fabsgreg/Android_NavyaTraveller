@@ -77,10 +77,8 @@ public class QRcodeFragment extends Fragment {
                 ShowMyDialog("Error","The station scanned doesn't exist");
                 return;
             }
-
         }
-        ((MainActivity) getActivity()).navigationView.getMenu().getItem(0).setChecked(true);
-        ((MainActivity) getActivity()).onNavigationItemSelected(((MainActivity) getActivity()).navigationView.getMenu().getItem(0));
+        ((MainActivity) getActivity()).onNavigationItemSelected(((MainActivity) getActivity()).navigationView.getMenu().getItem(0).setChecked(true));
     }
 
     public SaveResult MySaving() {
@@ -97,8 +95,7 @@ public class QRcodeFragment extends Fragment {
 
             public void onClick(DialogInterface dialog, int which) {
                 dialog.dismiss();
-                ((MainActivity) getActivity()).navigationView.getMenu().getItem(0).setChecked(true);
-                ((MainActivity) getActivity()).onNavigationItemSelected(((MainActivity) getActivity()).navigationView.getMenu().getItem(0));
+                ((MainActivity) getActivity()).onNavigationItemSelected(((MainActivity) getActivity()).navigationView.getMenu().getItem(0).setChecked(true));
             }
         });
         ad.show();

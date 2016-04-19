@@ -19,22 +19,15 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.TextView;
 
-import com.android.volley.AuthFailureError;
-import com.android.volley.Request;
-import com.android.volley.RequestQueue;
-import com.android.volley.Response;
-import com.android.volley.VolleyError;
-import com.android.volley.toolbox.JsonObjectRequest;
-import com.android.volley.toolbox.StringRequest;
-import com.android.volley.toolbox.Volley;
-
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.net.URISyntaxException;
 
+import io.socket.client.IO;
+import io.socket.client.Socket;
+import io.socket.emitter.Emitter;
 import navya.tech.navyatraveller.Databases.MyDBHandler;
 import navya.tech.navyatraveller.Fragments.GmapFragment;
 import navya.tech.navyatraveller.Fragments.GoFragment;
@@ -44,8 +37,8 @@ import navya.tech.navyatraveller.Fragments.HistoryFragment;
 
 public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
 
-    public static final String ipAddress = "10.0.20.34";
-    public static final Integer timeout = 6000;              // Timeout for database loading in millisecond
+    public static final String ipAddress = "10.0.20.72";
+    public static final Integer timeout = 10000;              // Timeout for database loading in millisecond
 
     private Fragment[] fragments;
     private String[] fragmentTAGS;
@@ -59,10 +52,13 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private Runnable timeoutProcess;
 
     private boolean[] DBloaded;
+    private MyDBHandler mDBHandler;
 
     private boolean isNavViewBlocked;
 
     public static SaveResult saving;
+
+    public static Socket mSocket;
 
 
     @Override
@@ -86,8 +82,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             navigationView.setNavigationItemSelectedListener(this);
         }
 
-        final MyDBHandler mDBHandler = new MyDBHandler(this);
-        mDBHandler.Reset();
+        mDBHandler = new MyDBHandler(this);
 
         DBloaded = new boolean[]{false, false};
 
@@ -103,14 +98,11 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         fragments = new Fragment[]{fragGMap, fragGo, fragQRCode, fragHistory};
         fragmentTAGS = new String[]{"Map","Go","QR code","History"};
 
-        phpLineRequest(mDBHandler);
-
         timeoutProcess = new Runnable() {
             @Override
             public void run() {
                 if (DBloaded[0] && DBloaded[1]) {
-                    navigationView.getMenu().getItem(0).setChecked(true);
-                    onNavigationItemSelected(navigationView.getMenu().getItem(0));
+                    onNavigationItemSelected(navigationView.getMenu().getItem(0).setChecked(true));
                 }
                 else {
                     ShowMyDialog("Your internet connection is not available", "Please, check your network before to launch the app");
@@ -137,114 +129,104 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
         handler = new Handler();
         handler.postDelayed(timeoutProcess, timeout);
+
+        try {
+            mSocket = IO.socket("http://"+MainActivity.ipAddress+":3001");
+            mSocket.connect();
+            mSocket.on(Socket.EVENT_CONNECT, onConnect);
+            mSocket.on("stationReceived", onStationReceived);
+            mSocket.on("lineReceived", onlineReceived);
+
+        } catch (URISyntaxException e) {}
+
     }
 
+    private Emitter.Listener onConnect = new Emitter.Listener() {
+        @Override
+        public void call(final Object... args) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    mDBHandler.Reset();
+                    mSocket.emit("lineRequest");
+                    mSocket.emit("stationRequest");
+                }
+            });
+        }
+    };
 
-    public void phpLineRequest (final MyDBHandler myDB) {
-        /// PHP request
-        String showLine = "http://"+ipAddress+"/navyaTraveller/showLine.php";
-        RequestQueue requestQueue = Volley.newRequestQueue(getApplicationContext());
-        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.POST, showLine
-                , new Response.Listener<JSONObject>() {
-            @Override
-            public void onResponse(JSONObject response) {
-                try {
-                    JSONArray lines = response.getJSONArray("lines");
-                    for (int i=0; i < lines.length(); i++) {
-                        JSONObject line = lines.getJSONObject(i);
+    private Emitter.Listener onStationReceived = new Emitter.Listener() {
+        @Override
+        public void call(final Object... args) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        JSONArray stations = (JSONArray) args[0];
+                        for (int i=0; i < stations.length(); i++) {
+                            JSONObject station = stations.getJSONObject(i);
 
-                        myDB.createLine(line.getString("name"));
+                            String stationName = station.getString("name");
+                            Double latitude = station.getDouble("latitude");
+                            Double longitude = station.getDouble("longitude");
+                            String lineName = station.getString("line_name");
+
+                            mDBHandler.createStation(stationName, latitude.floatValue(), longitude.floatValue(), lineName);
+                        }
+                        DBloaded[1] = true;
+                        handler.post(timeoutProcess);
+
+                    } catch (JSONException e) {
+                        e.printStackTrace();
                     }
-                    DBloaded[0] = true;
-                    phpStationRequest(myDB);
-                } catch (JSONException e) {
-                    e.printStackTrace();
+                }
+            });
+        }
+    };
+
+    private Emitter.Listener onlineReceived = new Emitter.Listener() {
+        @Override
+        public void call(final Object... args) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        JSONArray lines = (JSONArray) args[0];
+                        for (int i=0; i < lines.length(); i++) {
+                            JSONObject line = lines.getJSONObject(i);
+
+                            mDBHandler.createLine(line.getString("name"));
+                        }
+                        DBloaded[0] = true;
+
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
 
                 }
-
-            }
-        }       , new Response.ErrorListener() {
-            @Override
-            public void onErrorResponse(VolleyError error) {
-            }
-
-        });
-        requestQueue.add(jsonObjectRequest);
-    }
-
-    public void phpStationRequest (final MyDBHandler myDB) {
-        /// PHP request
-        String showStation = "http://"+ipAddress+"/navyaTraveller/showStation.php";
-        RequestQueue requestQueue = Volley.newRequestQueue(getApplicationContext());
-        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.POST, showStation
-                , new Response.Listener<JSONObject>() {
-            @Override
-            public void onResponse(JSONObject response) {
-                try {
-                    JSONArray stations = response.getJSONArray("stations");
-                    for (int i=0; i < stations.length(); i++) {
-                        JSONObject station = stations.getJSONObject(i);
-
-                        String stationName = station.getString("name");
-                        Double latitude = station.getDouble("latitude");
-                        Double longitude = station.getDouble("longitude");
-                        String lineName = station.getString("line_name");
-
-                        myDB.createStation(stationName, latitude.floatValue(), longitude.floatValue(), lineName);
-                    }
-                    DBloaded[1] = true;
-                    handler.post(timeoutProcess);
-
-                } catch (JSONException e) {
-                    e.printStackTrace();
-
-                }
-
-            }
-        }       , new Response.ErrorListener() {
-            @Override
-            public void onErrorResponse(VolleyError error) {
-            }
-
-        });
-        requestQueue.add(jsonObjectRequest);
-    }
+            });
+        }
+    };
 
     public void createRequestOnDB (final SaveLine data) {
-        /// PHP request
-        String createRequest = "http://"+ipAddress+"/navyaTraveller/createRequest.php";
-        RequestQueue requestQueue = Volley.newRequestQueue(getApplicationContext());
-        StringRequest request = new StringRequest(Request.Method.POST, createRequest, new Response.Listener<String>() {
-            @Override
-            public void onResponse(String response) {
-                // Handle success event
-            }
-        }, new Response.ErrorListener() {
-            @Override
-            public void onErrorResponse(VolleyError error) {
 
-            }
-        }) {
+        JSONObject request = new JSONObject();
+        try {
+            String start = saving.getStartStation().getStationName();
+            String end = saving.getEndStation().getStationName();
 
-            @Override
-            protected Map<String, String> getParams() throws AuthFailureError {
-                Map<String,String> parameters  = new HashMap<>();
+            request.put("start",start);
+            request.put("end",end);
+            request.put("line",saving.getLine().getName());
+            request.put("duration",String.valueOf(data.getTotalDuration(start,end)));
+            request.put("distance",String.valueOf(data.getTotalDistance(start,end)));
+            request.put("phone_number",saving.getPhoneNumber());
+            request.put("state",String.valueOf(1));
 
-                String start = saving.getStartStation().getStationName();
-                String end = saving.getEndStation().getStationName();
-
-                parameters.put("start",start);
-                parameters.put("end",end);
-                parameters.put("line",saving.getLine().getName());
-                parameters.put("duration",String.valueOf(data.getTotalDuration(start,end)));
-                parameters.put("distance",String.valueOf(data.getTotalDistance(start,end)));
-                parameters.put("phone_number",saving.getPhoneNumber());
-                parameters.put("state",String.valueOf(1));
-
-                return parameters;
-            }
-        };
-        requestQueue.add(request);
+            mSocket.emit("tripRequest",request);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
     }
 
 
@@ -306,9 +288,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
         if (saving.getIsTravelling() && !isNavViewBlocked) {
             isNavViewBlocked = true;
-            navigationView.getMenu().getItem(0).setChecked(true);
             onNavigationItemSelected(navigationView.getMenu().getItem(0).setChecked(true));
-            navigationView.setCheckedItem(0);
             return false;
         }
         else if (isNavViewBlocked) {

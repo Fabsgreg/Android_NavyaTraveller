@@ -38,12 +38,15 @@ import com.google.zxing.integration.android.IntentIntegrator;
 import com.google.zxing.integration.android.IntentResult;
 import com.sothree.slidinguppanel.SlidingUpPanelLayout;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.math.BigDecimal;
+import java.net.URISyntaxException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Hashtable;
 import java.util.List;
 
 import navya.tech.navyatraveller.Databases.Line;
@@ -55,6 +58,10 @@ import navya.tech.navyatraveller.PathJSONParser;
 import navya.tech.navyatraveller.R;
 import navya.tech.navyatraveller.SaveLine;
 import navya.tech.navyatraveller.SaveResult;
+
+import io.socket.client.IO;
+import io.socket.client.Socket;
+import io.socket.emitter.Emitter;
 
 /**
  * Created by gregoire.frezet on 24/03/2016.
@@ -82,6 +89,8 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
     private FloatingActionButton fab;
 
     private List<SaveLine> mSavedLine;
+
+    private Hashtable mNavyaMarkers;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -128,8 +137,57 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
         mLocationManager =  (LocationManager)getActivity().getSystemService(Context.LOCATION_SERVICE);
         mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, this);
 
+        MainActivity.mSocket.on("position", onNewShuttlePosition);
+        MainActivity.mSocket.on(Socket.EVENT_DISCONNECT, onDisconnect);
+
+        mNavyaMarkers = new Hashtable();
+
         return v;
     }
+
+    private Emitter.Listener onDisconnect = new Emitter.Listener() {
+        @Override
+        public void call(final Object... args) {
+            getActivity().runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    mNavyaMarkers.clear();
+                }
+            });
+        }
+    };
+
+    private Emitter.Listener onNewShuttlePosition = new Emitter.Listener() {
+        @Override
+        public void call(final Object... args) {
+            getActivity().runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    JSONObject data = (JSONObject) args[0];
+                    String name;
+                    double lat;
+                    double lng;
+                    try {
+                        name = data.getString("name");
+                        lat = data.getDouble("lat");
+                        lng= data.getDouble("lng");
+
+                        if (mNavyaMarkers.containsKey(name)) {
+                            ((Marker)mNavyaMarkers.get(name)).setPosition(new LatLng(lat, lng));
+                        }
+                        else {
+                            Marker tmp = mGoogleMap.addMarker(new MarkerOptions()
+                                    .position(new LatLng(lat, lng))
+                                    .icon(BitmapDescriptorFactory.fromResource(R.mipmap.ic_bus))
+                                    .title(name));
+                            mNavyaMarkers.put(name,tmp);
+                        }
+                    } catch (JSONException e) {
+                    }
+                }
+            });
+        }
+    };
 
     private SaveResult MySaving() {return MainActivity.saving;}
 
@@ -468,6 +526,8 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
     @Override
     public boolean onMarkerClick(Marker marker) {
         marker.showInfoWindow();
+
+        //if (marker)
 
         if (!MySaving().getIsTravelling()) {
             if (MySaving().getIsStartSelected()) {

@@ -114,8 +114,7 @@ public class GoFragment extends Fragment implements View.OnClickListener, Adapte
                 MySaving().setLine(startStation.getLine());
                 MySaving().setPreviousFragment("Go");
 
-                ((MainActivity) getActivity()).navigationView.getMenu().getItem(0).setChecked(true);
-                ((MainActivity) getActivity()).onNavigationItemSelected(((MainActivity) getActivity()).navigationView.getMenu().getItem(0));
+                ((MainActivity) getActivity()).onNavigationItemSelected(((MainActivity) getActivity()).navigationView.getMenu().getItem(0).setChecked(true));
 
                 return;
             }
