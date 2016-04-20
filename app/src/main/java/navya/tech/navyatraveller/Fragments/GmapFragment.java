@@ -33,6 +33,7 @@ import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.zxing.integration.android.IntentIntegrator;
 import com.google.zxing.integration.android.IntentResult;
@@ -42,11 +43,11 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.math.BigDecimal;
-import java.net.URISyntaxException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Hashtable;
+import java.util.Iterator;
 import java.util.List;
 
 import navya.tech.navyatraveller.Databases.Line;
@@ -59,7 +60,6 @@ import navya.tech.navyatraveller.R;
 import navya.tech.navyatraveller.SaveLine;
 import navya.tech.navyatraveller.SaveResult;
 
-import io.socket.client.IO;
 import io.socket.client.Socket;
 import io.socket.emitter.Emitter;
 
@@ -90,7 +90,13 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
 
     private List<SaveLine> mSavedLine;
 
-    private Hashtable mNavyaMarkers;
+    private Hashtable<String, Marker> mNavyaMarkers;
+    private Hashtable<String, Marker> mStationMarkers;
+    private Hashtable<String, Polyline> mLines;
+
+    //
+    ////////////////////////////////////////////////////  View Override /////////////////////////////////////////////////////////
+    //
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -109,13 +115,7 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
         mMapView.getMapAsync(this);
 
         mLayout = (SlidingUpPanelLayout) v.findViewById(R.id.sliding_layout);
-
-        if (mLayout.getPanelState() != SlidingUpPanelLayout.PanelState.HIDDEN) {
-            mLayout.setPanelState(SlidingUpPanelLayout.PanelState.HIDDEN);
-        }
-        else {
-            mLayout.setPanelState(SlidingUpPanelLayout.PanelState.COLLAPSED);
-        }
+        mLayout.setPanelState(SlidingUpPanelLayout.PanelState.HIDDEN);
 
         mDBHandler = new MyDBHandler(this.getActivity());
 
@@ -138,73 +138,23 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
         mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, this);
 
         MainActivity.mSocket.on("position", onNewShuttlePosition);
+        MainActivity.mSocket.on("shuttleDisconnected", onShuttleDisconnected);
+        MainActivity.mSocket.on("tripAccepted", onTripAccepted);
+        MainActivity.mSocket.on("tripEnded", onTripEnded);
         MainActivity.mSocket.on(Socket.EVENT_DISCONNECT, onDisconnect);
 
-        mNavyaMarkers = new Hashtable();
+        mNavyaMarkers = new Hashtable<>();
+
+        mStationMarkers = new Hashtable<>();
+
+        mLines = new Hashtable<>();
 
         return v;
     }
 
-    private Emitter.Listener onDisconnect = new Emitter.Listener() {
-        @Override
-        public void call(final Object... args) {
-            getActivity().runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    mNavyaMarkers.clear();
-                }
-            });
-        }
-    };
-
-    private Emitter.Listener onNewShuttlePosition = new Emitter.Listener() {
-        @Override
-        public void call(final Object... args) {
-            getActivity().runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    JSONObject data = (JSONObject) args[0];
-                    String name;
-                    double lat;
-                    double lng;
-                    try {
-                        name = data.getString("name");
-                        lat = data.getDouble("lat");
-                        lng= data.getDouble("lng");
-
-                        if (mNavyaMarkers.containsKey(name)) {
-                            ((Marker)mNavyaMarkers.get(name)).setPosition(new LatLng(lat, lng));
-                        }
-                        else {
-                            Marker tmp = mGoogleMap.addMarker(new MarkerOptions()
-                                    .position(new LatLng(lat, lng))
-                                    .icon(BitmapDescriptorFactory.fromResource(R.mipmap.ic_bus))
-                                    .title(name));
-                            mNavyaMarkers.put(name,tmp);
-                        }
-                    } catch (JSONException e) {
-                    }
-                }
-            });
-        }
-    };
-
-    private SaveResult MySaving() {return MainActivity.saving;}
-
     @Override
     public void onViewCreated(View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-    }
-
-    public void Update () {
-        if (MySaving().getWasQRcode()) {
-            endBouton.callOnClick();
-        }
-        else if (MySaving().getWasGo()) {
-            endBouton.callOnClick();
-            fab.callOnClick();
-        }
-        MySaving().setPreviousFragment("Map");
     }
 
     @Override
@@ -282,23 +232,248 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
         }
     }
 
-    private Integer truncateDouble (double x) {
-        double tmp = x - ((int) x);
-        if (tmp > 0.5) {
-            return (((int)x) + 1);
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+
+        IntentResult scanningResult = IntentIntegrator.parseActivityResult(requestCode, resultCode, data);
+        if (resultCode != 0) {
+
+            // get message
+            String scanContent = scanningResult.getContents();
+
+            if (scanContent.equalsIgnoreCase(MySaving().getStartStation().getStationName())) {
+
+                DisplayTravelData();
+                return;
+            }
+            else {
+                ShowMyDialog("Error","You've scanned the wrong code, please try again");
+                mLayout.setPanelState(SlidingUpPanelLayout.PanelState.HIDDEN);
+            }
         }
-        else {
-            return (int)x;
+        fab.callOnClick();
+    }
+
+    //
+    ////////////////////////////////////////////////////  Google Map Override /////////////////////////////////////////////////////////
+    //
+
+    @Override
+    public void onMapReady(GoogleMap googleMap) {
+
+        mGoogleMap = googleMap;
+        mGoogleMap.setMyLocationEnabled(true);
+        mGoogleMap.getUiSettings().setMyLocationButtonEnabled(true);
+        mGoogleMap.getUiSettings().setZoomControlsEnabled(true);
+        mGoogleMap.getUiSettings().setAllGesturesEnabled(true);
+        mGoogleMap.getUiSettings().setCompassEnabled(true);
+        mGoogleMap.getUiSettings().setMapToolbarEnabled(true);
+        mGoogleMap.setBuildingsEnabled(true);
+        mGoogleMap.setOnMarkerClickListener(this);
+
+        focusOnPosition();
+
+        List<Station> myStations;
+        List<Line> myLines;
+
+        float colorMarker = 0.0F;
+        myLines = mDBHandler.getAllLines();
+        if (myLines != null && !myLines.isEmpty()) {
+            for (Line e : myLines) {
+                myStations = mDBHandler.getStationsOfLine(e.getName());
+                if (myStations != null && !myStations.isEmpty()) {
+                    for (Station s : myStations) {
+                        mStationMarkers.put(s.getStationName(),mGoogleMap.addMarker(new MarkerOptions()
+                                                                        .icon(BitmapDescriptorFactory.defaultMarker(colorMarker))
+                                                                        .title(s.getLine().getName())
+                                                                        .snippet(s.getStationName())
+                                                                        .position(new LatLng(s.getLat(), s.getLng()))));
+                    }
+                    String url = getMapsApiDirectionsUrl(myStations);
+                    ReadTask downloadTask = new ReadTask();
+                    downloadTask.execute(url,e.getName());
+                }
+                colorMarker += 30;
+            }
         }
     }
 
-    private BigDecimal truncateDecimal (double x,int numberofDecimals)
-    {
-        if ( x > 0) {
-            return new BigDecimal(String.valueOf(x)).setScale(numberofDecimals, BigDecimal.ROUND_FLOOR);
-        } else {
-            return new BigDecimal(String.valueOf(x)).setScale(numberofDecimals, BigDecimal.ROUND_CEILING);
+    @Override
+    public boolean onMarkerClick(Marker marker) {
+        marker.showInfoWindow();
+
+        if (mNavyaMarkers.containsKey(marker.getTitle())) {
+            return true;
         }
+
+        if (!MySaving().getIsTravelling()) {
+            if (MySaving().getIsStartSelected()) {
+                MySaving().setStartStation(mDBHandler.getStationByName(marker.getSnippet()));
+                mResult.setText(MySaving().getStartStation().getStationName());
+                // If there is a station previously scanned and different from the new one selected, reset that one
+                if (!MySaving().getStationScanned().equalsIgnoreCase(MySaving().getStartStation().getStationName())) {
+                    MySaving().setStationScanned("");
+                }
+                endBouton.callOnClick();
+            }
+            else {
+                MySaving().setEndStation(mDBHandler.getStationByName(marker.getSnippet()));
+                mResult.setText(MySaving().getEndStation().getStationName());
+            }
+        }
+        return true;
+    }
+
+    @Override
+    public void onLocationChanged(Location location) {
+        focusOnPosition();
+    }
+
+    @Override
+    public void onProviderDisabled(String provider){}
+
+    @Override
+    public void onProviderEnabled(String provider){}
+
+    @Override
+    public void onStatusChanged(String provider, int status, Bundle extras) {}
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, this);
+        mMapView.onResume();
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        mMapView.onPause();
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        mMapView.onDestroy();
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        mMapView.onSaveInstanceState(outState);
+    }
+
+    @Override
+    public void onLowMemory() {
+        super.onLowMemory();
+        mMapView.onLowMemory();
+    }
+
+    //
+    ////////////////////////////////////////////////////  Google Map functions   /////////////////////////////////////////////////////////
+    //
+
+    private void hideAllMarkers() {
+        for (Marker m : mStationMarkers.values()) {
+            m.setVisible(false);
+        }
+    }
+
+    private void hideAllRoutes() {
+        for (Polyline p : mLines.values()) {
+            p.setVisible(false);
+        }
+    }
+
+    private void showPath(String line, String startStation, String endStation) {
+        List<Station> myStations;
+        try {
+            myStations = mDBHandler.getStationsOfLineBetween(line,startStation,endStation);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return;
+        }
+
+        hideAllMarkers();
+        hideAllRoutes();
+
+        if (myStations != null) {
+            for (Station s : myStations) {
+                mStationMarkers.get(s.getStationName()).setVisible(true);
+            }
+        }
+
+        PolylineOptions polyLineOptions = new PolylineOptions();
+        polyLineOptions.addAll(mSavedLine.get(MySaving().getIndex()).getPathPoints(startStation, endStation));
+        polyLineOptions.width(25);
+        polyLineOptions.color(Color.RED);
+        mLines.put("travellingPath",mGoogleMap.addPolyline(polyLineOptions));
+    }
+
+    private void showEverything() {
+        Iterator itValueM = mStationMarkers.values().iterator();
+        while(itValueM.hasNext()){
+            ((Marker) itValueM.next()).setVisible(true);
+        }
+
+        mLines.get("travellingPath").setVisible(false);
+        mLines.remove("travellingPath");
+        Iterator itValueL = mLines.values().iterator();
+        while(itValueL.hasNext()){
+            ((Polyline) itValueL.next()).setVisible(true);
+        }
+    }
+
+    private void focusOnPosition () {
+        Location location = mLocationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+
+        if (location != null) {
+            double lat = location.getLatitude();
+            double lng = location.getLongitude();
+            LatLng coordinate = new LatLng(lat, lng);
+            CameraPosition cameraPosition;
+
+            if (MySaving().getIsTravelling()) {
+                cameraPosition = CameraPosition.builder()
+                        .target(coordinate)
+                        .zoom(20)
+                        .tilt(70)
+                        .build();
+            }
+            else {
+                cameraPosition = CameraPosition.builder()
+                        .target(coordinate)
+                        .zoom(15)
+                        .tilt(0)
+                        .build();
+            }
+
+            // Animate the change in camera view over 2 seconds
+            mGoogleMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition),
+                    2000, null);
+        }
+    }
+
+    private String getMapsApiDirectionsUrl( List<Station> myStations) {
+        String waypoints = "waypoints=optimize:true";
+        int count = myStations.size();
+
+        for (int i = 0; i < count; i++) {
+            if (i == (count-1)) {
+                waypoints += "|" + myStations.get(i).getLat() + "," + myStations.get(i).getLng();
+            }
+            else {
+                waypoints += "|" + myStations.get(i).getLat() + "," + myStations.get(i).getLng()  + "|";
+            }
+        }
+
+        String origin = "origin=" + myStations.get(0).getLat() + "," + myStations.get(0).getLng() + "&";
+        String destination = "destination=" + myStations.get(0).getLat() + "," + myStations.get(0).getLng() + "&";
+        String sensor = "sensor=false";
+        String params = waypoints + "&" + sensor;
+        String output = "json";
+        return ("https://maps.googleapis.com/maps/api/directions/" + output + "?" + origin + destination + params);
     }
 
     public void DisplayTravelData () {
@@ -341,31 +516,66 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
 
         mArrivalTime.setText(DateToStr);
 
-        ((MainActivity) getActivity()).createRequestOnDB(mSavedLine.get(index));
+        createRequestOnDB(mSavedLine.get(index));
 
         // Display the path associated to the current trip
         showPath(MySaving().getLine().getName(), MySaving().getStartStation().getStationName(), MySaving().getEndStation().getStationName());
     }
 
-    @Override
-    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+    //
+    ////////////////////////////////////////////////////  Miscellaneous functions   /////////////////////////////////////////////////////////
+    //
 
-        IntentResult scanningResult = IntentIntegrator.parseActivityResult(requestCode, resultCode, data);
-        if (resultCode != 0) {
+    private SaveResult MySaving() {return MainActivity.saving;}
 
-            // get message
-            String scanContent = scanningResult.getContents();
-
-            if (scanContent.equalsIgnoreCase(MySaving().getStartStation().getStationName())) {
-                DisplayTravelData();
-                return;
-            }
-            else {
-                ShowMyDialog("Error","You've scanned the wrong code, please try again");
-                mLayout.setPanelState(SlidingUpPanelLayout.PanelState.HIDDEN);
-            }
+    public void Update () {
+        if (MySaving().getWasQRcode()) {
+            endBouton.callOnClick();
         }
-        fab.callOnClick();
+        else if (MySaving().getWasGo()) {
+            endBouton.callOnClick();
+            fab.callOnClick();
+        }
+        MySaving().setPreviousFragment("Map");
+    }
+
+    private Integer truncateDouble (double x) {
+        double tmp = x - ((int) x);
+        if (tmp > 0.5) {
+            return (((int)x) + 1);
+        }
+        else {
+            return (int)x;
+        }
+    }
+
+    private BigDecimal truncateDecimal (double x,int numberofDecimals) {
+        if ( x > 0) {
+            return new BigDecimal(String.valueOf(x)).setScale(numberofDecimals, BigDecimal.ROUND_FLOOR);
+        } else {
+            return new BigDecimal(String.valueOf(x)).setScale(numberofDecimals, BigDecimal.ROUND_CEILING);
+        }
+    }
+
+    public void createRequestOnDB (final SaveLine data) {
+
+        JSONObject request = new JSONObject();
+        try {
+            String start = MySaving().getStartStation().getStationName();
+            String end =  MySaving().getEndStation().getStationName();
+
+            request.put("start",start);
+            request.put("end",end);
+            request.put("line", MySaving().getLine().getName());
+            request.put("duration",String.valueOf(data.getTotalDuration(start,end)));
+            request.put("distance",String.valueOf(data.getTotalDistance(start,end)));
+            request.put("phone_number", MySaving().getPhoneNumber());
+            request.put("state",String.valueOf(1));
+
+            MainActivity.mSocket.emit("tripRequest",request);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
     }
 
     public void ShowMyDialog (String title, String text) {
@@ -389,233 +599,95 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
         return (dp * ((float)metrics.densityDpi / DisplayMetrics.DENSITY_DEFAULT));
     }
 
+    //
+    ////////////////////////////////////////////////////  Socket.IO events   /////////////////////////////////////////////////////////
+    //
 
-    @Override
-    public void onMapReady(GoogleMap googleMap) {
+    private Emitter.Listener onTripAccepted = new Emitter.Listener() {
+        @Override
+        public void call(final Object... args) {
+            getActivity().runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    ShowMyDialog("Info","Trip accepted");
+                }
+            });
+        }
+    };
 
-        mGoogleMap = googleMap;
-        mGoogleMap.setMyLocationEnabled(true);
-        mGoogleMap.getUiSettings().setMyLocationButtonEnabled(true);
-        mGoogleMap.getUiSettings().setZoomControlsEnabled(true);
-        mGoogleMap.getUiSettings().setAllGesturesEnabled(true);
-        mGoogleMap.getUiSettings().setCompassEnabled(true);
-        mGoogleMap.getUiSettings().setMapToolbarEnabled(true);
-        mGoogleMap.setBuildingsEnabled(true);
-        mGoogleMap.setOnMarkerClickListener(this);
+    private Emitter.Listener onTripEnded = new Emitter.Listener() {
+        @Override
+        public void call(final Object... args) {
+            getActivity().runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    ShowMyDialog("Info","Trip ended");
+                }
+            });
+        }
+    };
 
-        focusOnPosition();
+    private Emitter.Listener onShuttleDisconnected = new Emitter.Listener() {
+        @Override
+        public void call(final Object... args) {
+            getActivity().runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    (mNavyaMarkers.get(args[0])).remove();
+                    mNavyaMarkers.remove(args[0]);
+                }
+            });
+        }
+    };
 
-        List<Station> myStations;
-        List<Line> myLines;
+    private Emitter.Listener onDisconnect = new Emitter.Listener() {
+        @Override
+        public void call(final Object... args) {
+            getActivity().runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                }
+            });
+        }
+    };
 
-        float colorMarker = 0.0F;
-        myLines = mDBHandler.getAllLines();
-        if (myLines != null && !myLines.isEmpty()) {
-            for (Line e : myLines) {
-                myStations = mDBHandler.getStationsOfLine(e.getName());
-                if (myStations != null && !myStations.isEmpty()) {
-                    for (Station s : myStations) {
-                        mGoogleMap.addMarker(new MarkerOptions()
-                                .icon(BitmapDescriptorFactory.defaultMarker(colorMarker))
-                                .title(s.getLine().getName())
-                                .snippet(s.getStationName())
-                                .position(new LatLng(s.getLat(), s.getLng())));
+    private Emitter.Listener onNewShuttlePosition = new Emitter.Listener() {
+        @Override
+        public void call(final Object... args) {
+            getActivity().runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    JSONObject data = (JSONObject) args[0];
+                    String name;
+                    double lat;
+                    double lng;
+                    try {
+                        name = data.getString("name");
+                        lat = data.getDouble("lat");
+                        lng= data.getDouble("lng");
+
+                        if (mNavyaMarkers.containsKey(name)) {
+                            (mNavyaMarkers.get(name)).setPosition(new LatLng(lat, lng));
+                        }
+                        else {
+                            Marker tmp = mGoogleMap.addMarker(new MarkerOptions()
+                                    .position(new LatLng(lat, lng))
+                                    .icon(BitmapDescriptorFactory.fromResource(R.mipmap.ic_bus))
+                                    .title(name));
+                            mNavyaMarkers.put(name,tmp);
+                        }
+                    } catch (JSONException e) {
+                        e.printStackTrace();
                     }
-                    String url = getMapsApiDirectionsUrl(myStations);
-                    ReadTask downloadTask = new ReadTask();
-                    downloadTask.execute(url,e.getName());
                 }
-                colorMarker += 30;
-            }
+            });
         }
-    }
+    };
 
-    private void showPath(String line, String startStation, String endStation) {
-        mGoogleMap.clear();
-        List<Station> myStations = null;
-        try {
-            myStations = mDBHandler.getStationsOfLineBetween(line,startStation,endStation);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
 
-        float colorMarker = 30.0F;
-
-        if (myStations != null) {
-            for (Station s : myStations) {
-                mGoogleMap.addMarker(new MarkerOptions()
-                        .icon(BitmapDescriptorFactory.defaultMarker(colorMarker))
-                        .title(s.getLine().getName())
-                        .snippet(s.getStationName())
-                        .position(new LatLng(s.getLat(), s.getLng())));
-            }
-        }
-
-        PolylineOptions polyLineOptions = new PolylineOptions();
-
-        polyLineOptions.addAll(mSavedLine.get(MySaving().getIndex()).getPathPoints(startStation, endStation));
-        polyLineOptions.width(25);
-        polyLineOptions.color(Color.RED);
-        mGoogleMap.addPolyline(polyLineOptions);
-    }
-
-    private void showEverything() {
-        mGoogleMap.clear();
-
-        List<Station> myStations;
-        List<Line> myLines;
-
-        float colorMarker = 0.0F;
-        myLines = mDBHandler.getAllLines();
-        if (myLines != null && !myLines.isEmpty()) {
-            for (Line e : myLines) {
-                myStations = mDBHandler.getStationsOfLine(e.getName());
-                if (myStations != null && !myStations.isEmpty()) {
-                    for (Station s : myStations) {
-                        mGoogleMap.addMarker(new MarkerOptions()
-                                .icon(BitmapDescriptorFactory.defaultMarker(colorMarker))
-                                .title(s.getLine().getName())
-                                .snippet(s.getStationName())
-                                .position(new LatLng(s.getLat(), s.getLng())));
-                    }
-
-                    PolylineOptions polyLineOptions = new PolylineOptions();
-
-                    long index = e.getId();
-                    polyLineOptions.addAll(mSavedLine.get(((int)index-1)).getAllPoints());
-                    polyLineOptions.width(5);
-                    polyLineOptions.color(Color.BLUE);
-                    mGoogleMap.addPolyline(polyLineOptions);
-
-                }
-                colorMarker += 30;
-            }
-        }
-    }
-
-    private void focusOnPosition () {
-        Location location = mLocationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-
-        if (location != null) {
-            double lat = location.getLatitude();
-            double lng = location.getLongitude();
-            LatLng coordinate = new LatLng(lat, lng);
-            CameraPosition cameraPosition;
-
-            if (MySaving().getIsTravelling()) {
-                cameraPosition = CameraPosition.builder()
-                        .target(coordinate)
-                        .zoom(20)
-                        .tilt(70)
-                        .build();
-            }
-            else {
-                cameraPosition = CameraPosition.builder()
-                        .target(coordinate)
-                        .zoom(15)
-                        .tilt(0)
-                        .build();
-            }
-
-            // Animate the change in camera view over 2 seconds
-            mGoogleMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition),
-                    2000, null);
-        }
-    }
-
-    @Override
-    public boolean onMarkerClick(Marker marker) {
-        marker.showInfoWindow();
-
-        //if (marker)
-
-        if (!MySaving().getIsTravelling()) {
-            if (MySaving().getIsStartSelected()) {
-                MySaving().setStartStation(mDBHandler.getStationByName(marker.getSnippet()));
-                mResult.setText(MySaving().getStartStation().getStationName());
-                // If there is a station previously scanned and different from the new one selected, reset that one
-                if (!MySaving().getStationScanned().equalsIgnoreCase(MySaving().getStartStation().getStationName())) {
-                    MySaving().setStationScanned("");
-                }
-                endBouton.callOnClick();
-            }
-            else {
-                MySaving().setEndStation(mDBHandler.getStationByName(marker.getSnippet()));
-                mResult.setText(MySaving().getEndStation().getStationName());
-            }
-        }
-        return true;
-    }
-
-    @Override
-    public void onLocationChanged(Location location) {
-        focusOnPosition();
-    }
-
-    @Override
-    public void onProviderDisabled(String provider){
-
-    }
-
-    @Override
-    public void onProviderEnabled(String provider){
-    }
-
-    @Override
-    public void onStatusChanged(String provider, int status, Bundle extras) {
-    }
-
-    @Override
-    public void onResume() {
-        super.onResume();
-        mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, this);
-        mMapView.onResume();
-    }
-
-    @Override
-    public void onPause() {
-        super.onPause();
-        mMapView.onPause();
-    }
-
-    @Override
-    public void onDestroy() {
-        super.onDestroy();
-        mMapView.onDestroy();
-    }
-
-    @Override
-    public void onSaveInstanceState(Bundle outState) {
-        super.onSaveInstanceState(outState);
-        mMapView.onSaveInstanceState(outState);
-    }
-
-    @Override
-    public void onLowMemory() {
-        super.onLowMemory();
-        mMapView.onLowMemory();
-    }
-
-    private String getMapsApiDirectionsUrl( List<Station> myStations) {
-        String waypoints = "waypoints=optimize:true";
-        int count = myStations.size();
-
-        for (int i = 0; i < count; i++) {
-            if (i == (count-1)) {
-                waypoints += "|" + myStations.get(i).getLat() + "," + myStations.get(i).getLng();
-            }
-            else {
-                waypoints += "|" + myStations.get(i).getLat() + "," + myStations.get(i).getLng()  + "|";
-            }
-        }
-
-        String origin = "origin=" + myStations.get(0).getLat() + "," + myStations.get(0).getLng() + "&";
-        String destination = "destination=" + myStations.get(0).getLat() + "," + myStations.get(0).getLng() + "&";
-        String sensor = "sensor=false";
-        String params = waypoints + "&" + sensor;
-        String output = "json";
-        return ("https://maps.googleapis.com/maps/api/directions/" + output + "?" + origin + destination + params);
-    }
+    //
+    ////////////////////////////////////////////////////  Http request classes   /////////////////////////////////////////////////////////
+    //
 
     private class ReadTask extends AsyncTask<String, Void, String> {
         private String lineName;
@@ -670,10 +742,8 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
             polyLineOptions.addAll(line.getAllPoints());
             polyLineOptions.width(5);
             polyLineOptions.color(Color.BLUE);
-            mGoogleMap.addPolyline(polyLineOptions);
+            mLines.put(line.getLineName(),mGoogleMap.addPolyline(polyLineOptions));
         }
 
     }
-
-
 }

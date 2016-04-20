@@ -148,8 +148,14 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 @Override
                 public void run() {
                     mDBHandler.Reset();
+                    JSONObject request = new JSONObject();
+                    try {
+                        request.put("number", saving.getPhoneNumber());
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+                    mSocket.emit("nameUpdate",request);
                     mSocket.emit("lineRequest");
-                    mSocket.emit("stationRequest");
                 }
             });
         }
@@ -198,6 +204,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                             mDBHandler.createLine(line.getString("name"));
                         }
                         DBloaded[0] = true;
+                        mSocket.emit("stationRequest");
 
                     } catch (JSONException e) {
                         e.printStackTrace();
@@ -207,28 +214,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             });
         }
     };
-
-    public void createRequestOnDB (final SaveLine data) {
-
-        JSONObject request = new JSONObject();
-        try {
-            String start = saving.getStartStation().getStationName();
-            String end = saving.getEndStation().getStationName();
-
-            request.put("start",start);
-            request.put("end",end);
-            request.put("line",saving.getLine().getName());
-            request.put("duration",String.valueOf(data.getTotalDuration(start,end)));
-            request.put("distance",String.valueOf(data.getTotalDistance(start,end)));
-            request.put("phone_number",saving.getPhoneNumber());
-            request.put("state",String.valueOf(1));
-
-            mSocket.emit("tripRequest",request);
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-    }
-
 
     private void ShowMyDialog (String title, String text) {
         Context context = this;
