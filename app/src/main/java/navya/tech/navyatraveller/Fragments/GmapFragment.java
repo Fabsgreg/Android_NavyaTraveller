@@ -15,14 +15,13 @@ import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
-import android.text.InputType;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
-import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -80,7 +79,11 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
     private TextView mWaitingTime;
     private TextView mDuration;
     private TextView mDistance;
-    private TextView mResult;
+    private TextView mEndResult;
+    private TextView mStartResult;
+
+    private LinearLayout mStartLayout;
+    private LinearLayout mEndLayout;
 
     private SlidingUpPanelLayout mLayout;
 
@@ -128,11 +131,16 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
         endBouton = (Button) v.findViewById(R.id.end_button);
         endBouton.setOnClickListener(this);
 
-        mResult = (TextView) v.findViewById(R.id.result_textView);
+        mEndResult = (TextView) v.findViewById(R.id.result_end_textView);
+        mStartResult = (TextView) v.findViewById(R.id.result_start_textView);
+
         mArrivalTime = (TextView) v.findViewById(R.id.arrival_time);
         mWaitingTime = (TextView) v.findViewById(R.id.waiting_time);
         mDistance = (TextView) v.findViewById(R.id.distance);
         mDuration = (TextView) v.findViewById(R.id.duration);
+
+        mStartLayout = (LinearLayout) v.findViewById(R.id.start_layout);
+        mEndLayout = (LinearLayout) v.findViewById(R.id.end_layout);
 
         fab = (FloatingActionButton) v.findViewById(R.id.fab);
         fab.setOnClickListener(this);
@@ -170,15 +178,17 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
         if (v.getId() == R.id.start_button){
             if (!MySaving().getIsTravelling()) {
                 startBouton.setBackgroundColor(0xff547192);
+                mStartLayout.setBackgroundColor(0xff547192);
                 endBouton.setBackgroundColor(0xff6687ae);
+                mEndLayout.setBackgroundColor(0xff6687ae);
                 MySaving().setIsStartSelected(true);
                 // Check if a station has been selected before
                 if (MySaving().getStartStation().getStationName() != null) {
                     // If yes, memorize this station as starting point
-                    mResult.setText(MySaving().getStartStation().getStationName());
+                    mStartResult.setText(MySaving().getStartStation().getStationName());
                 }
                 else {
-                    mResult.setText("Pick a station");
+                    mStartResult.setHint("Pick a station");
                 }
             }
         }
@@ -186,15 +196,17 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
         else if (v.getId() == R.id.end_button){
             if (!MySaving().getIsTravelling()) {
                 startBouton.setBackgroundColor(0xff6687ae);
+                mStartLayout.setBackgroundColor(0xff6687ae);
                 endBouton.setBackgroundColor(0xff547192);
+                mEndLayout.setBackgroundColor(0xff547192);
                 MySaving().setIsStartSelected(false);
                 // Check if a station has been selected before
                 if (MySaving().getEndStation().getStationName() != null) {
                     // If yes, memorize this station as ending point
-                    mResult.setText(MySaving().getEndStation().getStationName());
+                    mEndResult.setText(MySaving().getEndStation().getStationName());
                 }
                 else {
-                    mResult.setText("Pick a station");
+                    mEndResult.setHint("Pick a station");
                 }
             }
         }
@@ -339,7 +351,7 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
         if (!MySaving().getIsTravelling()) {
             if (MySaving().getIsStartSelected()) {
                 MySaving().setStartStation(mDBHandler.getStationByName(marker.getSnippet()));
-                mResult.setText(MySaving().getStartStation().getStationName());
+                mStartResult.setText(MySaving().getStartStation().getStationName());
                 // If there is a station previously scanned and different from the new one selected, reset that one
                 if (!MySaving().getStationScanned().equalsIgnoreCase(MySaving().getStartStation().getStationName())) {
                     MySaving().setStationScanned("");
@@ -348,7 +360,7 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
             }
             else {
                 MySaving().setEndStation(mDBHandler.getStationByName(marker.getSnippet()));
-                mResult.setText(MySaving().getEndStation().getStationName());
+                mEndResult.setText(MySaving().getEndStation().getStationName());
             }
         }
         return true;
