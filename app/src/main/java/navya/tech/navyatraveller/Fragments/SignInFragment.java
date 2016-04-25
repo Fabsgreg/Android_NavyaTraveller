@@ -41,7 +41,7 @@ public class SignInFragment extends Fragment implements View.OnClickListener {
         MainActivity.mSocket.on("recipientRejected", onRecipientRejected);
         MainActivity.mSocket.on("signInFailed", onSignInFailed);
         MainActivity.mSocket.on("signInSuccessful", onSignInSuccessful);
-        MainActivity.mSocket.on("phoneNumberError", onPhoneNumberError);
+        MainActivity.mSocket.on("phoneNumberError", onSignInPhoneNumberError);
     }
 
 
@@ -156,7 +156,7 @@ public class SignInFragment extends Fragment implements View.OnClickListener {
         }
     };
 
-    private Emitter.Listener onPhoneNumberError = new Emitter.Listener() {
+    private Emitter.Listener onSignInPhoneNumberError = new Emitter.Listener() {
         @Override
         public void call(final Object... args) {
             getActivity().runOnUiThread(new Runnable() {

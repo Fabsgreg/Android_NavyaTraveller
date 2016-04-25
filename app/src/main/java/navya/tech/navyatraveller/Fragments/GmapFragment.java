@@ -15,13 +15,16 @@ import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
+import android.text.InputType;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.TextView;
+import android.widget.Toast;
 
 
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -137,18 +140,21 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
         mLocationManager =  (LocationManager)getActivity().getSystemService(Context.LOCATION_SERVICE);
         mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, this);
 
-        MainActivity.mSocket.on("position", onNewShuttlePosition);
-        MainActivity.mSocket.on("shuttleDisconnected", onShuttleDisconnected);
-        MainActivity.mSocket.on("tripAccepted", onTripAccepted);
-        MainActivity.mSocket.on("tripEnded", onTripEnded);
-        MainActivity.mSocket.on("shuttleUnavailable", onShuttleUnavailable);
-        MainActivity.mSocket.on(Socket.EVENT_DISCONNECT, onDisconnect);
-
         mNavyaMarkers = new Hashtable<>();
 
         mStationMarkers = new Hashtable<>();
 
         mLines = new Hashtable<>();
+
+        MainActivity.mSocket.on("position", onNewShuttlePosition);
+        MainActivity.mSocket.on("shuttleDisconnected", onShuttleDisconnected);
+        MainActivity.mSocket.on("tripAccepted", onTripAccepted);
+        MainActivity.mSocket.on("tripEnded", onTripEnded);
+        MainActivity.mSocket.on("tripRefused", onTripRefused);
+        MainActivity.mSocket.on("tripAbortedCallback", onTripAborted);
+        MainActivity.mSocket.on("shuttleUnavailable", onShuttleUnavailable);
+        MainActivity.mSocket.on("shuttleArrived", onShuttleArrived);
+        MainActivity.mSocket.on(Socket.EVENT_DISCONNECT, onDisconnect);
 
         return v;
     }
@@ -195,28 +201,42 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
         else if (v.getId() == R.id.fab) {
             // If you're already travelling
             if (MySaving().getIsTravelling()) {
-                // Hide the SlidingUpPanel
-                mLayout.setPanelState(SlidingUpPanelLayout.PanelState.HIDDEN);
 
-                // Resize the Google map component
-                ViewGroup.MarginLayoutParams params = (ViewGroup.MarginLayoutParams) mMapView.getLayoutParams();
-                params.bottomMargin = (int)convertDpToPixel(0,this.getActivity());
-                mMapView.setLayoutParams(params);
+                AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+                builder.setTitle("Info");
+                builder.setMessage("Are you sure you want to abort this travel ?");
 
-                params = (ViewGroup.MarginLayoutParams) fab.getLayoutParams();
-                params.bottomMargin = (int) convertDpToPixel(0, this.getActivity());
-                fab.setLayoutParams(params);
-                fab.setImageDrawable(ContextCompat.getDrawable(this.getActivity(), R.drawable.ic_directions));
+                // Set up the buttons
+                builder.setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        JSONObject request = new JSONObject();
+                        try {
+                            request.put("phone_number", MainActivity.savingAccount.getPhoneNumber());
+                            MainActivity.mSocket.emit("tripAborted", request);
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                        TripEnded();
+                    }
+                });
+                builder.setNegativeButton("No", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.cancel();
+                    }
+                });
+                builder.show();
 
-                // Display all the line with their associated stations
-                showEverything();
-
-                MySaving().setIsTravelling(false);
-
-                focusOnPosition();
             }
             else {
                 if (MySaving().isGood()) {
+
+                    if (!MainActivity.savingAccount.getConnected()) {
+                        ShowMyDialog("Info","You need to be logged in before to request a trip");
+                        return;
+                    }
+
                     // Show the QRcode camera window if it hasn't been scanned before
                     if ( !MySaving().getStationScanned().equalsIgnoreCase(MySaving().getStartStation().getStationName()) ) {
                         IntentIntegrator.forSupportFragment(this).setPrompt("Please, scan the QR code near you to complete your order").initiateScan();
@@ -253,7 +273,7 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
                         break;
                     }
                 }
-                createRequestOnDB(mSavedLine.get(index));
+                createRequestOnServer(mSavedLine.get(index));
                 return;
             }
             else {
@@ -531,6 +551,28 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
     ////////////////////////////////////////////////////  Miscellaneous functions   /////////////////////////////////////////////////////////
     //
 
+    private void TripEnded () {
+        // Hide the SlidingUpPanel
+        mLayout.setPanelState(SlidingUpPanelLayout.PanelState.HIDDEN);
+
+        // Resize the Google map component
+        ViewGroup.MarginLayoutParams params = (ViewGroup.MarginLayoutParams) mMapView.getLayoutParams();
+        params.bottomMargin = (int)convertDpToPixel(0,this.getActivity());
+        mMapView.setLayoutParams(params);
+
+        params = (ViewGroup.MarginLayoutParams) fab.getLayoutParams();
+        params.bottomMargin = (int) convertDpToPixel(0, this.getActivity());
+        fab.setLayoutParams(params);
+        fab.setImageDrawable(ContextCompat.getDrawable(this.getActivity(), R.drawable.ic_directions));
+
+        // Display all the line with their associated stations
+        showEverything();
+
+        MySaving().setIsTravelling(false);
+
+        focusOnPosition();
+    }
+
     private SaveResult MySaving() {return MainActivity.savingData;}
 
     public void Update () {
@@ -562,7 +604,7 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
         }
     }
 
-    private void createRequestOnDB (final SaveLine data) {
+    private void createRequestOnServer (final SaveLine data) {
 
         JSONObject request = new JSONObject();
         try {
@@ -621,6 +663,19 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
     };
 
 
+    private Emitter.Listener onTripAborted = new Emitter.Listener() {
+        @Override
+        public void call(final Object... args) {
+            getActivity().runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    Toast.makeText(getActivity(),"Your trip has been aborted",Toast.LENGTH_LONG).show();
+                    MainActivity.UpdateAccountData();
+                }
+            });
+        }
+    };
+
     private Emitter.Listener onTripAccepted = new Emitter.Listener() {
         @Override
         public void call(final Object... args) {
@@ -628,7 +683,7 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
                 @Override
                 public void run() {
                     DisplayTravelData();
-                    ShowMyDialog("Info","Trip accepted");
+                    Toast.makeText(getActivity(),"Trip accepted",Toast.LENGTH_LONG).show();
                 }
             });
         }
@@ -640,7 +695,21 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
             getActivity().runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
+                    MainActivity.UpdateAccountData();
+                    TripEnded();
                     ShowMyDialog("Info","Trip ended");
+                }
+            });
+        }
+    };
+
+    private Emitter.Listener onTripRefused = new Emitter.Listener() {
+        @Override
+        public void call(final Object... args) {
+            getActivity().runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    ShowMyDialog("Info","Your accont is blocked, please contact us at developer.navya@gmail.com");
                 }
             });
         }
@@ -698,6 +767,18 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
                     } catch (JSONException e) {
                         e.printStackTrace();
                     }
+                }
+            });
+        }
+    };
+
+    private Emitter.Listener onShuttleArrived = new Emitter.Listener() {
+        @Override
+        public void call(final Object... args) {
+            getActivity().runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    Toast.makeText(getActivity(),"Your shuttle arrived, please get in",Toast.LENGTH_LONG).show();
                 }
             });
         }

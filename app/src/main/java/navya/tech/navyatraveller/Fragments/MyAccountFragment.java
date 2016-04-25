@@ -139,7 +139,6 @@ public class MyAccountFragment extends Fragment implements View.OnClickListener 
         mPassword.setText(MainActivity.savingAccount.getPassword());
         mConfirmPassword.setText("");
         mPhoneNumber.setText(MainActivity.savingAccount.getPhoneNumber());
-        //mTripAborted.setText(MainActivity.savingAccount.getTripAborted().toString());
     }
 
     private void ShowMyDialog (String title, String text) {

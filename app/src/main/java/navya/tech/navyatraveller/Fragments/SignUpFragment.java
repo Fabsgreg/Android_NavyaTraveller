@@ -39,7 +39,7 @@ public class SignUpFragment extends Fragment implements View.OnClickListener {
 
         MainActivity.mSocket.on("signUpSuccessful", onSigningUpResultReceived);
         MainActivity.mSocket.on("emailError", onEmailError);
-        MainActivity.mSocket.on("phoneNumberError", onPhoneNumberError);
+        MainActivity.mSocket.on("phoneNumberError", onSignUpPhoneNumberError);
     }
 
     @Override
@@ -169,7 +169,7 @@ public class SignUpFragment extends Fragment implements View.OnClickListener {
         }
     };
 
-    private Emitter.Listener onPhoneNumberError = new Emitter.Listener() {
+    private Emitter.Listener onSignUpPhoneNumberError = new Emitter.Listener() {
         @Override
         public void call(final Object... args) {
             getActivity().runOnUiThread(new Runnable() {

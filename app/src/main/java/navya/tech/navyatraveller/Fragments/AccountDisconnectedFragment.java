@@ -44,21 +44,8 @@ public class AccountDisconnectedFragment extends Fragment {
         mgr.hideSoftInputFromWindow(windowToken, 0);
     }
 
-
     @Override
     public void onDestroyView() {
         super.onDestroyView();
     }
-
-    @Override
-    public void onDestroy() {
-        super.onDestroy();
-    }
-
-    @Override
-    public void onResume() {
-        super.onResume();
-    }
-
-
 }
