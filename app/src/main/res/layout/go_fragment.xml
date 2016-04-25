@@ -84,7 +84,6 @@
         android:layout_height="0dp"
         android:text="Request a shuttle"
         android:id="@+id/go_button"
-        android:onClick="Myclick"
         android:layout_below="@+id/spinnerEnd"
         android:layout_centerHorizontal="true"
         android:layout_weight="1"

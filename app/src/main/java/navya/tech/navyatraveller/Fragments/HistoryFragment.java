@@ -27,10 +27,11 @@ import navya.tech.navyatraveller.R;
 public class HistoryFragment extends Fragment {
 
     private TextView mTravel;
-    private TextView mLine;
+    //private TextView mLine;
     private TextView mDuration;
     private TextView mDistance;
     private TextView mResult;
+    private TextView mTripAborted;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -38,25 +39,68 @@ public class HistoryFragment extends Fragment {
         View v = inflater.inflate(R.layout.history_fragment, container, false);
 
         mTravel = (TextView) v.findViewById(R.id.travel);
-        mLine = (TextView) v.findViewById(R.id.line);
+        //mLine = (TextView) v.findViewById(R.id.line);
         mDuration = (TextView) v.findViewById(R.id.duration);
         mDistance = (TextView) v.findViewById(R.id.distance);
         mResult = (TextView) v.findViewById(R.id.result);
+        mTripAborted = (TextView) v.findViewById(R.id.aborted_text);
 
-        MainActivity.mSocket.on("historyReceived", onHistoryReceived);
+/*        MainActivity.mSocket.on("historyReceived", onHistoryReceived);
 
         JSONObject request = new JSONObject();
         try {
-            request.put("number", MainActivity.saving.getPhoneNumber());
+            request.put("phone_number", MainActivity.savingAccount.getPhoneNumber());
+            MainActivity.mSocket.emit("historyRequest",request);
         } catch (JSONException e) {
             e.printStackTrace();
-        }
-        MainActivity.mSocket.emit("historyRequest",request);
+        }*/
 
         return v;
     }
 
-    private Emitter.Listener onHistoryReceived = new Emitter.Listener() {
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+
+        double distance = MainActivity.savingAccount.getDistance();
+        double duration = MainActivity.savingAccount.getDuration();
+
+        Calendar time = Calendar.getInstance();
+        time.clear();
+        time.add(Calendar.MINUTE, truncateDouble(duration));
+        SimpleDateFormat format = new SimpleDateFormat("HH:mm");
+
+        mTravel.setText(MainActivity.savingAccount.getNbrTravel().toString());
+        mDuration.setText("" + format.format(time.getTime()) +"");
+        mDistance.setText("" + truncateDecimal(distance,2) +" km");
+        mResult.setText("Congratulations, you saved " + truncateDecimal(distance * 0.070,3) + " kg of CO2 by travelling with Navya");
+        mTripAborted.setText(MainActivity.savingAccount.getTripAborted().toString());
+    }
+
+    private BigDecimal truncateDecimal (double x, int numberOfDecimals) {
+        if ( x > 0) {
+            return new BigDecimal(String.valueOf(x)).setScale(numberOfDecimals, BigDecimal.ROUND_FLOOR);
+        } else {
+            return new BigDecimal(String.valueOf(x)).setScale(numberOfDecimals, BigDecimal.ROUND_CEILING);
+        }
+    }
+
+    private Integer truncateDouble (double x) {
+        double tmp = x - ((int) x);
+        if (tmp > 0.5) {
+            return (((int)x) + 1);
+        }
+        else {
+            return (int)x;
+        }
+    }
+
+/*    private Emitter.Listener onHistoryReceived = new Emitter.Listener() {
         @Override
         public void call(final Object... args) {
             getActivity().runOnUiThread(new Runnable() {
@@ -94,9 +138,9 @@ public class HistoryFragment extends Fragment {
                 }
             });
         }
-    };
+    };*/
 
-    private String findMostRecursiveItem (List<String> myString) {
+/*    private String findMostRecursiveItem (List<String> myString) {
         List<String> tmp = new ArrayList<>();
 
         for(int i=0; i<myString.size(); i++) {
@@ -121,29 +165,8 @@ public class HistoryFragment extends Fragment {
             }
             nbrItem = 0;
         }
-
         return result;
-    }
-
-    private BigDecimal truncateDecimal (double x, int numberofDecimals)
-    {
-        if ( x > 0) {
-            return new BigDecimal(String.valueOf(x)).setScale(numberofDecimals, BigDecimal.ROUND_FLOOR);
-        } else {
-            return new BigDecimal(String.valueOf(x)).setScale(numberofDecimals, BigDecimal.ROUND_CEILING);
-        }
-    }
-
-    private Integer truncateDouble (double x) {
-        double tmp = x - ((int) x);
-        if (tmp > 0.5) {
-            return (((int)x) + 1);
-        }
-        else {
-            return (int)x;
-        }
-    }
-
+    }*/
 }
 
 

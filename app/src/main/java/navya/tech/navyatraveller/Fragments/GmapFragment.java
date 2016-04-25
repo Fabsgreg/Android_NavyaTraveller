@@ -141,6 +141,7 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
         MainActivity.mSocket.on("shuttleDisconnected", onShuttleDisconnected);
         MainActivity.mSocket.on("tripAccepted", onTripAccepted);
         MainActivity.mSocket.on("tripEnded", onTripEnded);
+        MainActivity.mSocket.on("shuttleUnavailable", onShuttleUnavailable);
         MainActivity.mSocket.on(Socket.EVENT_DISCONNECT, onDisconnect);
 
         mNavyaMarkers = new Hashtable<>();
@@ -173,7 +174,6 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
                 else {
                     mResult.setText("Pick a station");
                 }
-
             }
         }
         // Fire click event on End button
@@ -212,6 +212,8 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
                 showEverything();
 
                 MySaving().setIsTravelling(false);
+
+                focusOnPosition();
             }
             else {
                 if (MySaving().isGood()) {
@@ -228,7 +230,6 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
                     ShowMyDialog("Error", "You must pick two different stations on the same line");
                 }
             }
-            focusOnPosition();
         }
     }
 
@@ -243,7 +244,16 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
 
             if (scanContent.equalsIgnoreCase(MySaving().getStartStation().getStationName())) {
 
-                DisplayTravelData();
+                // Get the index of the line selected by user
+                int index = -1;
+                for (int i=0; i < mSavedLine.size(); i++){
+                    if (mSavedLine.get(i).getLineName().equalsIgnoreCase(MySaving().getLine().getName())) {
+                        index = i;
+                        MySaving().setIndex(index);
+                        break;
+                    }
+                }
+                createRequestOnDB(mSavedLine.get(index));
                 return;
             }
             else {
@@ -477,6 +487,8 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
     }
 
     public void DisplayTravelData () {
+        MySaving().setIsTravelling(true);
+
         // Display the SlidingUpPanel
         mLayout.setPanelState(SlidingUpPanelLayout.PanelState.COLLAPSED);
 
@@ -491,14 +503,7 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
         fab.setImageDrawable(ContextCompat.getDrawable(this.getActivity(), R.drawable.ic_cancel));
 
         // Get the index of the line selected by user
-        int index = -1;
-        for (int i=0; i < mSavedLine.size(); i++){
-            if (mSavedLine.get(i).getLineName().equalsIgnoreCase(MySaving().getLine().getName())) {
-                index = i;
-                MySaving().setIndex(index);
-                break;
-            }
-        }
+        int index = MySaving().getIndex();
 
         // Display informations about the trip
         int waitingTime = 2;
@@ -516,17 +521,17 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
 
         mArrivalTime.setText(DateToStr);
 
-        createRequestOnDB(mSavedLine.get(index));
-
         // Display the path associated to the current trip
         showPath(MySaving().getLine().getName(), MySaving().getStartStation().getStationName(), MySaving().getEndStation().getStationName());
+
+        focusOnPosition();
     }
 
     //
     ////////////////////////////////////////////////////  Miscellaneous functions   /////////////////////////////////////////////////////////
     //
 
-    private SaveResult MySaving() {return MainActivity.saving;}
+    private SaveResult MySaving() {return MainActivity.savingData;}
 
     public void Update () {
         if (MySaving().getWasQRcode()) {
@@ -557,7 +562,7 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
         }
     }
 
-    public void createRequestOnDB (final SaveLine data) {
+    private void createRequestOnDB (final SaveLine data) {
 
         JSONObject request = new JSONObject();
         try {
@@ -569,7 +574,7 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
             request.put("line", MySaving().getLine().getName());
             request.put("duration",String.valueOf(data.getTotalDuration(start,end)));
             request.put("distance",String.valueOf(data.getTotalDistance(start,end)));
-            request.put("phone_number", MySaving().getPhoneNumber());
+            request.put("phone_number", MainActivity.savingAccount.getPhoneNumber());
             request.put("state",String.valueOf(1));
 
             MainActivity.mSocket.emit("tripRequest",request);
@@ -603,12 +608,26 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
     ////////////////////////////////////////////////////  Socket.IO events   /////////////////////////////////////////////////////////
     //
 
+    private Emitter.Listener onShuttleUnavailable = new Emitter.Listener() {
+        @Override
+        public void call(final Object... args) {
+            getActivity().runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    ShowMyDialog("Info","There is no shuttle available for the moment, please retry later");
+                }
+            });
+        }
+    };
+
+
     private Emitter.Listener onTripAccepted = new Emitter.Listener() {
         @Override
         public void call(final Object... args) {
             getActivity().runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
+                    DisplayTravelData();
                     ShowMyDialog("Info","Trip accepted");
                 }
             });

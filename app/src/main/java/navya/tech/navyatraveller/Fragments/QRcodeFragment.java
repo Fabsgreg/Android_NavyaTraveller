@@ -82,7 +82,7 @@ public class QRcodeFragment extends Fragment {
     }
 
     public SaveResult MySaving() {
-        return MainActivity.saving;
+        return MainActivity.savingData;
     }
 
     public void ShowMyDialog (String title, String text) {

@@ -19,7 +19,7 @@ public class SaveResult {
     private boolean wasGo;
 
     private String stationScanned;
-    private String phoneNumber;
+
 
     public SaveResult(){
         startStation = new Station();
@@ -32,7 +32,6 @@ public class SaveResult {
         wasQRcode = false;
         wasGo = false;
         stationScanned = "";
-        phoneNumber = "";
     }
 
     public void Reset() {
@@ -52,7 +51,7 @@ public class SaveResult {
         else {
             if (startStation.getLine().getName().equalsIgnoreCase(endStation.getLine().getName())) {
                 if (!startStation.getStationName().equalsIgnoreCase(endStation.getStationName())) {
-                    isTravelling = true;
+                    //isTravelling = true;
                     line = startStation.getLine();
                     return true;
                 }
@@ -128,23 +127,13 @@ public class SaveResult {
         return  currentIndexOfSavedLine;
     }
 
-    //public void setWasGmap (boolean _state) { wasGmap = _state; }
-
     public boolean getWasGmap () { return wasGmap; }
 
-    //public void setWasQRcode (boolean _state) { wasQRcode = _state; }
-
     public boolean getWasQRcode () { return wasQRcode; }
-
-    //public void setWasGo (boolean _state) { wasGo = _state; }
 
     public boolean getWasGo () { return wasGo; }
 
     public void setStationScanned (String _name) { stationScanned = _name; }
 
     public String getStationScanned () { return stationScanned; }
-
-    public void setPhoneNumber (String _number) { phoneNumber = _number; }
-
-    public String getPhoneNumber () { return phoneNumber; }
 }

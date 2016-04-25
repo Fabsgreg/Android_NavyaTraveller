@@ -124,7 +124,7 @@ public class GoFragment extends Fragment implements View.OnClickListener, Adapte
     }
 
     public SaveResult MySaving() {
-        return MainActivity.saving;
+        return MainActivity.savingData;
     }
 
     @Override
