@@ -3,7 +3,8 @@ package navya.tech.navyatraveller;
 /**
  * Created by gregoire.frezet on 21/04/2016.
  */
-public class SaveAccount {
+
+public class SavingAccount {
 
     private String password;
     private String email;
@@ -16,8 +17,7 @@ public class SaveAccount {
     private String phoneNumber;
     private Integer nbrTravel;
 
-
-    public SaveAccount() {
+    public SavingAccount() {
         this.password = "";
         this.email = "";
         this.lastName = "";
@@ -30,6 +30,8 @@ public class SaveAccount {
         this.nbrTravel = 0;
     }
 
+
+    // Getter & Setter
     public void setPassword(String password) {
         this.password = password;
     }
@@ -55,7 +57,7 @@ public class SaveAccount {
     }
 
     public void setConnected(Boolean connected) {
-        isConnected = connected;
+        this.isConnected = connected;
     }
 
     public void setTripAborted(Integer tripAborted) {

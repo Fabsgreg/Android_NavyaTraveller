@@ -10,10 +10,16 @@ import org.json.JSONObject;
 
 import com.google.android.gms.maps.model.LatLng;
 
-public class PathJSONParser {
+/**
+ * Created by gregoire.frezet on 24/03/2016.
+ */
 
-    public SaveLine parse(JSONObject jObject) throws Exception {
-        SaveLine _line = new SaveLine();
+/*************     This class only works for Google Maps API     *************/
+
+public class GoogleMapsJSONParser {
+
+    public SavingLine parse(JSONObject jObject) throws Exception {
+        SavingLine line = new SavingLine();
         JSONArray jRoutes;
         JSONArray jLegs;
         JSONArray jSteps;
@@ -22,32 +28,32 @@ public class PathJSONParser {
 
         try {
             jRoutes = jObject.getJSONArray("routes");
-            /** Traversing all routes */
+            // Traversing all routes
             for (int i = 0; i < jRoutes.length(); i++) {
                 jLegs = ((JSONObject) jRoutes.get(i)).getJSONArray("legs");
 
-                /** Traversing all legs */
+                // Traversing all legs
                 for (int j = 0; j < jLegs.length(); j++) {
                     jSteps = ((JSONObject) jLegs.get(j)).getJSONArray("steps");
                     jDurations = ((JSONObject) jLegs.get(j)).getJSONObject("duration");
                     jDistances = ((JSONObject) jLegs.get(j)).getJSONObject("distance");
 
                     // Get duration
-                    _line.addDuration((Integer) jDurations.get("value"));
+                    line.addDuration((Integer) jDurations.get("value"));
 
                     // Get distance
-                    _line.addDistance((Integer) jDistances.get("value"));
+                    line.addDistance((Integer) jDistances.get("value"));
 
-                    /** Traversing all steps */
+                    // Traversing all steps
                     for (int k = 0; k < jSteps.length(); k++) {
                         String polyline;
                         polyline = (String) ((JSONObject) ((JSONObject) jSteps
                                 .get(k)).get("polyline")).get("points");
                         List<LatLng> list = decodePoly(polyline);
 
-                        /** Traversing all points */
+                        // Traversing all points
                         for (int l = 0; l < list.size(); l++) {
-                            _line.addPointOnRoute(j, list.get(l));
+                            line.addPointOnRoute(j, list.get(l));
                         }
                     }
                 }
@@ -55,20 +61,18 @@ public class PathJSONParser {
         } catch (JSONException e) {
             e.printStackTrace();
         }
-        _line.updateResult();
-        return _line;
+        line.updateResult();
+        return line;
     }
 
-    /**
-     * Method Courtesy :
-     * jeffreysambells.com/2010/05/27
-     * /decoding-polylines-from-google-maps-direction-api-with-java
-     * */
+    // Decode encoded string provided by the Google Maps API into a list of point
     private List<LatLng> decodePoly(String encoded) {
 
         List<LatLng> poly = new ArrayList<>();
-        int index = 0, len = encoded.length();
-        int lat = 0, lng = 0;
+        int index = 0;
+        int len = encoded.length();
+        int lat = 0;
+        int lng = 0;
 
         while (index < len) {
             int b, shift = 0, result = 0;
@@ -90,8 +94,7 @@ public class PathJSONParser {
             int dlng = ((result & 1) != 0 ? ~(result >> 1) : (result >> 1));
             lng += dlng;
 
-            LatLng p = new LatLng((((double) lat / 1E5)),
-                    (((double) lng / 1E5)));
+            LatLng p = new LatLng((((double) lat / 1E5)), (((double) lng / 1E5)));
             poly.add(p);
         }
         return poly;

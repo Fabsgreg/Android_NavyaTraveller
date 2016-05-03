@@ -7,17 +7,10 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.List;
 
-import io.socket.emitter.Emitter;
 import navya.tech.navyatraveller.MainActivity;
 import navya.tech.navyatraveller.R;
 
@@ -31,6 +24,10 @@ public class HistoryFragment extends Fragment {
     private TextView mDistance;
     private TextView mResult;
     private TextView mTripAborted;
+
+    //
+    ////////////////////////////////////////////////////  View Override /////////////////////////////////////////////////////////
+    //
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -55,20 +52,24 @@ public class HistoryFragment extends Fragment {
     public void onResume() {
         super.onResume();
 
-        double distance = MainActivity.savingAccount.getDistance();
-        double duration = MainActivity.savingAccount.getDuration();
+        double distance = MainActivity.getSavingAccount().getDistance();
+        double duration = MainActivity.getSavingAccount().getDuration();
 
         Calendar time = Calendar.getInstance();
         time.clear();
         time.add(Calendar.MINUTE, truncateDouble(duration));
         SimpleDateFormat format = new SimpleDateFormat("HH:mm");
 
-        mTravel.setText(MainActivity.savingAccount.getNbrTravel().toString());
+        mTravel.setText(MainActivity.getSavingAccount().getNbrTravel().toString());
         mDuration.setText("" + format.format(time.getTime()) +"");
         mDistance.setText("" + truncateDecimal(distance,2) +" km");
         mResult.setText("Congratulations, you saved " + truncateDecimal(distance * 0.070,3) + " kg of CO2 by travelling with Navya");
-        mTripAborted.setText(MainActivity.savingAccount.getTripAborted().toString());
+        mTripAborted.setText(MainActivity.getSavingAccount().getTripAborted().toString());
     }
+
+    //
+    ////////////////////////////////////////////////////  Miscellaneous functions   /////////////////////////////////////////////////////////
+    //
 
     private BigDecimal truncateDecimal (double x, int numberOfDecimals) {
         if ( x > 0) {

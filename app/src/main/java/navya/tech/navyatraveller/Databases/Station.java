@@ -7,50 +7,54 @@ import java.io.Serializable;
  */
 public class Station implements Serializable {
 
-    private int _id;
-    private String _name;
-    private float _lat;
-    private float _lng;
-    private Line _line;
+    private Long id;
+    private String name;
+    private Double lat;
+    private Double lng;
+    private Line line;
 
     public Station() {}
 
-    public long getId() {
-        return _id;
-    }
 
-    public void setId(int id) {
-        this._id = id;
+    // Getter & Setter
+    public Long getId() {
+        return id;
     }
 
     public String getStationName() {
-        return _name;
+        return name;
     }
 
-    public void setStationName(String _name) {
-        this._name = _name;
+    public Double getLat() {
+        return lat;
     }
 
-    public double getLat() {
-        return _lat;
-    }
-    public void setLat(float _lat) {
-        this._lat = _lat;
-    }
-
-    public double getLng() {
-        return _lng;
-    }
-    public void setLng(float _lng) {
-        this._lng = _lng;
+    public Double getLng() {
+        return lng;
     }
 
     public Line getLine() {
-        return _line;
+        return line;
     }
 
-    public void setLineName(Line _line) {
-        this._line = _line;
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public void setStationName(String name) {
+        this.name = name;
+    }
+
+    public void setLat(Double lat) {
+        this.lat = lat;
+    }
+
+    public void setLng(Double lng) {
+        this.lng = lng;
+    }
+
+    public void setLineName(Line line) {
+        this.line = line;
     }
 
 }

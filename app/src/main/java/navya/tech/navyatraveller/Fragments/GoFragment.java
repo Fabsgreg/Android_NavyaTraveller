@@ -23,19 +23,22 @@ import navya.tech.navyatraveller.Databases.MyDBHandler;
 import navya.tech.navyatraveller.Databases.Station;
 import navya.tech.navyatraveller.MainActivity;
 import navya.tech.navyatraveller.R;
-import navya.tech.navyatraveller.SaveResult;
 
 /**
  * Created by gregoire.frezet on 24/03/2016.
  */
 public class GoFragment extends Fragment implements View.OnClickListener, AdapterView.OnItemSelectedListener {
 
-    private Spinner goSpinnerStart;
-    private Spinner goSpinnerEnd;
-    private ArrayAdapter<String> goSpStaAdap;
-    private ArrayAdapter<String> goSpEndAdap;
+    private Spinner mGoSpinnerStart;
+    private Spinner mGoSpinnerEnd;
+    private ArrayAdapter<String> mGoSpStaAdap;
+    private ArrayAdapter<String> mGoSpEndAdap;
 
     private MyDBHandler mDBHandler;
+
+    //
+    ////////////////////////////////////////////////////  View Override /////////////////////////////////////////////////////////
+    //
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -60,17 +63,17 @@ public class GoFragment extends Fragment implements View.OnClickListener, Adapte
         goSpinnerLine.setAdapter(goSpLinAdap);
         goSpinnerLine.setOnItemSelectedListener(this);
 
-        goSpinnerStart = (Spinner) v.findViewById(R.id.spinnerStart);
-        goSpStaAdap = new ArrayAdapter<>(this.getActivity(), android.R.layout.simple_spinner_item, new ArrayList<String>());
-        goSpStaAdap.setDropDownViewResource(android.R.layout.simple_dropdown_item_1line);
-        goSpinnerStart.setAdapter(goSpStaAdap);
-        goSpinnerStart.setOnItemSelectedListener(this);
+        mGoSpinnerStart = (Spinner) v.findViewById(R.id.spinnerStart);
+        mGoSpStaAdap = new ArrayAdapter<>(this.getActivity(), android.R.layout.simple_spinner_item, new ArrayList<String>());
+        mGoSpStaAdap.setDropDownViewResource(android.R.layout.simple_dropdown_item_1line);
+        mGoSpinnerStart.setAdapter(mGoSpStaAdap);
+        mGoSpinnerStart.setOnItemSelectedListener(this);
 
-        goSpinnerEnd = (Spinner) v.findViewById(R.id.spinnerEnd);
-        goSpEndAdap = new ArrayAdapter<>(this.getActivity(), android.R.layout.simple_spinner_item, new ArrayList<String>());
-        goSpEndAdap.setDropDownViewResource(android.R.layout.simple_dropdown_item_1line);
-        goSpinnerEnd.setAdapter(goSpEndAdap);
-        goSpinnerEnd.setOnItemSelectedListener(this);
+        mGoSpinnerEnd = (Spinner) v.findViewById(R.id.spinnerEnd);
+        mGoSpEndAdap = new ArrayAdapter<>(this.getActivity(), android.R.layout.simple_spinner_item, new ArrayList<String>());
+        mGoSpEndAdap.setDropDownViewResource(android.R.layout.simple_dropdown_item_1line);
+        mGoSpinnerEnd.setAdapter(mGoSpEndAdap);
+        mGoSpinnerEnd.setOnItemSelectedListener(this);
 
         Button goBouton = (Button) v.findViewById(R.id.go_button);
         goBouton.setOnClickListener(this);
@@ -80,13 +83,7 @@ public class GoFragment extends Fragment implements View.OnClickListener, Adapte
     }
 
     @Override
-    public void onViewCreated(View view, Bundle savedInstanceState) {
-        super.onViewCreated(view, savedInstanceState);
-    }
-
-    @Override
     public void onClick(View v) {
-        //do what you want to do when mybutton is clicked
 
         if (v.getId() == R.id.go_button) {
 
@@ -94,7 +91,7 @@ public class GoFragment extends Fragment implements View.OnClickListener, Adapte
             AlertDialog ad = new AlertDialog.Builder(context).create();
             ad.setCancelable(false);
 
-            if (goSpinnerStart.getSelectedItem().toString().equalsIgnoreCase(goSpinnerEnd.getSelectedItem().toString())){
+            if (mGoSpinnerStart.getSelectedItem().toString().equalsIgnoreCase(mGoSpinnerEnd.getSelectedItem().toString())){
                 ad.setTitle("Error");
                 ad.setMessage("You must pick two different stations");
                 ad.setButton(-1, "OK", new DialogInterface.OnClickListener() {
@@ -105,26 +102,22 @@ public class GoFragment extends Fragment implements View.OnClickListener, Adapte
                 });
             }
             else {
-                Station startStation = mDBHandler.getStationByName(goSpinnerStart.getSelectedItem().toString());
-                Station endStation = mDBHandler.getStationByName(goSpinnerEnd.getSelectedItem().toString());
+                Station startStation = mDBHandler.getStationByName(mGoSpinnerStart.getSelectedItem().toString());
+                Station endStation = mDBHandler.getStationByName(mGoSpinnerEnd.getSelectedItem().toString());
 
-                MySaving().Reset();
-                MySaving().setStartStation(startStation);
-                MySaving().setEndStation(endStation);
-                MySaving().setLine(startStation.getLine());
-                MySaving().setPreviousFragment("Go");
+                MainActivity.getSavingResult().Reset();
+                MainActivity.getSavingResult().setStartStation(startStation);
+                MainActivity.getSavingResult().setEndStation(endStation);
+                MainActivity.getSavingResult().setLine(startStation.getLine());
+                MainActivity.getSavingResult().setPreviousFragment("Go");
 
-                ((MainActivity) getActivity()).onNavigationItemSelected(((MainActivity) getActivity()).navigationView.getMenu().getItem(0).setChecked(true));
+                ((MainActivity) getActivity()).onNavigationItemSelected(((MainActivity) getActivity()).mNavigationView.getMenu().getItem(0).setChecked(true));
 
                 return;
             }
 
             ad.show();
         }
-    }
-
-    public SaveResult MySaving() {
-        return MainActivity.savingData;
     }
 
     @Override
@@ -136,18 +129,18 @@ public class GoFragment extends Fragment implements View.OnClickListener, Adapte
         {
             List<Station> myStations;
 
-            goSpStaAdap.clear();
-            goSpEndAdap.clear();
+            mGoSpStaAdap.clear();
+            mGoSpEndAdap.clear();
 
             myStations = mDBHandler.getStationsOfLine(parent.getItemAtPosition(pos).toString());
             if (myStations != null && !myStations.isEmpty()) {
                 for (Station e : myStations) {
-                    goSpEndAdap.add(e.getStationName());
-                    goSpStaAdap.add(e.getStationName());
+                    mGoSpEndAdap.add(e.getStationName());
+                    mGoSpStaAdap.add(e.getStationName());
                 }
             }
-            goSpEndAdap.notifyDataSetChanged();
-            goSpStaAdap.notifyDataSetChanged();
+            mGoSpEndAdap.notifyDataSetChanged();
+            mGoSpStaAdap.notifyDataSetChanged();
         }
 
     }
@@ -156,6 +149,5 @@ public class GoFragment extends Fragment implements View.OnClickListener, Adapte
     public void onNothingSelected(AdapterView parent) {
         // Do nothing.
     }
-
 
 }

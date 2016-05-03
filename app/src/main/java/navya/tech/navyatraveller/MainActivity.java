@@ -6,7 +6,6 @@ import android.os.Handler;
 import android.support.v4.app.Fragment;
 import android.os.Bundle;
 import android.support.design.widget.NavigationView;
-import android.support.v4.app.FragmentTabHost;
 import android.support.v4.app.FragmentTransaction;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
@@ -36,46 +35,58 @@ import navya.tech.navyatraveller.Fragments.AccountDisconnectedFragment;
 import navya.tech.navyatraveller.Fragments.GmapFragment;
 import navya.tech.navyatraveller.Fragments.GoFragment;
 import navya.tech.navyatraveller.Fragments.QRcodeFragment;
-import navya.tech.navyatraveller.Fragments.SignInFragment;
-import navya.tech.navyatraveller.Fragments.SignUpFragment;
 
+/**
+ * Created by gregoire.frezet on 24/03/2016.
+ */
 
 public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
 
     // Global variable
-    public static String ipAddress = "10.0.20.72";
-    public static Integer timeout = 10000;              // Timeout for database loading in millisecond
-    public static SaveResult savingData;
-    public static SaveAccount savingAccount;
-    public static Socket mSocket;
+    public static final String ipAddress = "10.0.20.144";
+    public static final Integer timeout = 10000;      // Timeout for database loading in millisecond
 
-    private Fragment[] fragments;
-    private String[] fragmentTAGS;
-    public NavigationView navigationView;
+    // Data saving
+    private static SavingResult mSavingResult;
+    private static SavingAccount mSavingAccount;
+    private static Socket mSocket;
 
-    private GmapFragment fragGMap;
-    private QRcodeFragment fragQRCode;
-    private AccountConnectedFragment fragAccountConnected;
-    private AccountDisconnectedFragment fragAccountDisconnected;
+    // Layout
+    public NavigationView mNavigationView;       // Declared as public because other fragments may invoke to change the current view
+    private DrawerLayout mDrawer;
 
-    private Handler handler;
-    private Runnable timeoutProcess;
+    // Fragments
+    private Fragment[] mFragmentList;
+    private String[] mFragmentTAGS;
+    private GmapFragment mFragGMap;
+    private QRcodeFragment mFragQRCode;
+    private GoFragment mFragGo;
+    private AccountConnectedFragment mFragAccountConnected;
+    private AccountDisconnectedFragment mFragAccountDisconnected;
 
-    private boolean[] DBloaded;
+    private Handler mTimeoutHandler;
+    private Runnable mTimeoutProcess;
+
+    // Database
+    private boolean[] mDBloaded;
     private MyDBHandler mDBHandler;
 
     private boolean isNavViewBlocked;
 
+    //
+    ////////////////////////////////////////////////////  View Override /////////////////////////////////////////////////////////
+    //
+
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_main);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
-        ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close){
+        mDrawer = (DrawerLayout) findViewById(R.id.drawer_layout);
+        ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(this, mDrawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close){
             public void onDrawerOpened(View drawerView){
                 super.onDrawerOpened(drawerView);
                 // Hide Keyboard
@@ -88,66 +99,51 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             }
         };
 
-        if (drawer != null) {
-            drawer.addDrawerListener(toggle);
+        if (mDrawer != null) {
+            mDrawer.addDrawerListener(toggle);
         }
         toggle.syncState();
 
-        navigationView = (NavigationView) findViewById(R.id.nav_view);
-        if (navigationView != null) {
-            navigationView.setNavigationItemSelectedListener(this);
+        mNavigationView = (NavigationView) findViewById(R.id.nav_view);
+        if (mNavigationView != null) {
+            mNavigationView.setNavigationItemSelectedListener(this);
         }
+        isNavViewBlocked = false;
+        View header = mNavigationView.getHeaderView(0);
+        TextView mPhoneNumber = (TextView) header.findViewById(R.id.phone_number);
 
+        // Init DB & Data saving
         mDBHandler = new MyDBHandler(this);
+        mDBloaded = new boolean[]{false, false};
+        mSavingResult = new SavingResult();
+        mSavingAccount = new SavingAccount();
 
-        DBloaded = new boolean[]{false, false};
+        // Retrieve phone number
+        TelephonyManager tMgr = (TelephonyManager)this.getSystemService(Context.TELEPHONY_SERVICE);
+        String myPhoneNumber = tMgr.getLine1Number();
+        if (myPhoneNumber == null) {
+            myPhoneNumber = "0123456789";
+        }
+        mSavingAccount.setPhoneNumber(myPhoneNumber);
+        mPhoneNumber.setText("Login : "+myPhoneNumber+"");
 
-        savingData = new SaveResult();
-
-        savingAccount = new SaveAccount();
-
-        fragGMap = new GmapFragment();
-        fragQRCode = new QRcodeFragment();
-        GoFragment fragGo = new GoFragment();
-        fragAccountConnected = new AccountConnectedFragment();
-        fragAccountDisconnected = new AccountDisconnectedFragment();
-
-
-        fragments = new Fragment[]{fragGMap, fragGo, fragQRCode, fragAccountConnected, fragAccountDisconnected};
-        fragmentTAGS = new String[]{"Map", "Go","QR code", "Account Connected", "Account Disconnected"};
-
-        timeoutProcess = new Runnable() {
+        // Internet connection checking
+        mTimeoutProcess = new Runnable() {
             @Override
             public void run() {
-                if (DBloaded[0] && DBloaded[1]) {
-                    onNavigationItemSelected(navigationView.getMenu().getItem(0).setChecked(true));
+                if (mDBloaded[0] && mDBloaded[1]) {
+                    onNavigationItemSelected(mNavigationView.getMenu().getItem(0).setChecked(true));
                 }
                 else {
                     ShowMyDialog("Your internet connection is not available", "Please, check your network before to launch the app");
                 }
-                handler.removeCallbacks(timeoutProcess);
+                mTimeoutHandler.removeCallbacks(mTimeoutProcess);
             }
         };
+        mTimeoutHandler = new Handler();
+        mTimeoutHandler.postDelayed(mTimeoutProcess, timeout);
 
-        View header=navigationView.getHeaderView(0);
-        TextView mPhoneNumber = (TextView) header.findViewById(R.id.phone_number);
-
-        TelephonyManager tMgr = (TelephonyManager)this.getSystemService(Context.TELEPHONY_SERVICE);
-        String myPhoneNumber = tMgr.getLine1Number();
-
-        if (myPhoneNumber == null) {
-            myPhoneNumber = "0123456789";
-        }
-
-        mPhoneNumber.setText("Login : "+myPhoneNumber+"");
-
-        savingAccount.setPhoneNumber(myPhoneNumber);
-
-        isNavViewBlocked = false;
-
-        handler = new Handler();
-        handler.postDelayed(timeoutProcess, timeout);
-
+        // Socket.IO init
         try {
             mSocket = IO.socket("http://"+MainActivity.ipAddress+":3001");
             mSocket.connect();
@@ -157,7 +153,16 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             mSocket.on("accountDataUpdated", onAccountDataUpdated);
             UpdateAccountData();
 
-        } catch (URISyntaxException e) {}
+        } catch (URISyntaxException ignored) {}
+
+        // Fragment init
+        mFragGMap = new GmapFragment();
+        mFragQRCode = new QRcodeFragment();
+        mFragGo = new GoFragment();
+        mFragAccountConnected = new AccountConnectedFragment();
+        mFragAccountDisconnected = new AccountDisconnectedFragment();
+        mFragmentList = new Fragment[]{mFragGMap, mFragGo, mFragQRCode, mFragAccountConnected, mFragAccountDisconnected};
+        mFragmentTAGS = new String[]{"Map", "Go","QR code", "Account Connected", "Account Disconnected"};
     }
 
     @Override
@@ -199,14 +204,14 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
         int position = 0;
 
-        if (savingData.getIsTravelling() && !isNavViewBlocked) {
+        if (mSavingResult.getTravelling() && !isNavViewBlocked) {
             isNavViewBlocked = true;
-            onNavigationItemSelected(navigationView.getMenu().getItem(0).setChecked(true));
+            onNavigationItemSelected(mNavigationView.getMenu().getItem(0).setChecked(true));
             return false;
         }
         else if (isNavViewBlocked) {
             isNavViewBlocked = false;
-            fragGMap.ShowMyDialog("Warning","End your travel before to switch between Tabs");
+            mFragGMap.ShowMyDialog("Warning","End your travel before to switch between Tabs");
         }
         else {
             switch (item.toString())
@@ -221,7 +226,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     position = 2;
                     break;
                 case  "Account" :
-                    if (savingAccount.getConnected()) {
+                    if (mSavingAccount.getConnected()) {
                         position = 3;
                     }
                     else {
@@ -234,36 +239,33 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         FragmentTransaction fragmentTransaction = getSupportFragmentManager().beginTransaction();
         fragmentTransaction.setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN);
 
-        // Add the fragments only once if array haven't fragment
-        if (getSupportFragmentManager().findFragmentByTag(fragmentTAGS[position]) == null) {
-            fragmentTransaction.add(R.id.content_frame, fragments[position], fragmentTAGS[position]);
+        // Add the mFragmentList only once if array haven't fragment
+        if (getSupportFragmentManager().findFragmentByTag(mFragmentTAGS[position]) == null) {
+            fragmentTransaction.add(R.id.content_frame, mFragmentList[position], mFragmentTAGS[position]);
         }
 
-        // Hiding & Showing fragments
-        for(int catx=0;catx<fragments.length;catx++)
+        // Hiding & Showing mFragmentList
+        for(int catx = 0; catx< mFragmentList.length; catx++)
         {
             if(catx == position) {
 
-                fragmentTransaction.show(fragments[catx]);
-                if ((fragments[catx] == fragGMap) && (!savingData.getWasGmap())) {
-                    fragGMap.Update();
+                fragmentTransaction.show(mFragmentList[catx]);
+                if ((mFragmentList[catx] == mFragGMap) && (!mSavingResult.getGmap())) {
+                    mFragGMap.Update();
                 }
-                else if (fragments[catx] == fragQRCode) {
+                else if (mFragmentList[catx] == mFragQRCode) {
                     // Reset fragment
-                    fragmentTransaction.detach(fragments[catx]);
-                    fragmentTransaction.attach(fragments[catx]);
+                    fragmentTransaction.detach(mFragmentList[catx]);
+                    fragmentTransaction.attach(mFragmentList[catx]);
                 }
             }
             else {
-                fragmentTransaction.hide(fragments[catx]);
+                fragmentTransaction.hide(mFragmentList[catx]);
             }
         }
         fragmentTransaction.commit();
 
-        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
-        if (drawer != null) {
-            drawer.closeDrawer(GravityCompat.START);
-        }
+        mDrawer.closeDrawer(GravityCompat.START);
 
         return true;
     }
@@ -291,13 +293,24 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     public static void UpdateAccountData () {
         JSONObject request = new JSONObject();
         try {
-            request.put("phone_number", savingAccount.getPhoneNumber());
+            request.put("phone_number", mSavingAccount.getPhoneNumber());
             mSocket.emit("updateAccountData",request);
         } catch (JSONException e) {
             e.printStackTrace();
         }
 
     }
+
+
+    //
+    ////////////////////////////////////////////////////  Getter   /////////////////////////////////////////////////////////
+    //
+
+    public static Socket getSocket () { return mSocket; }
+
+    public static SavingAccount getSavingAccount () { return mSavingAccount; }
+
+    public static SavingResult getSavingResult () { return mSavingResult; }
 
     //
     ////////////////////////////////////////////////////  Socket.IO events   /////////////////////////////////////////////////////////
@@ -312,7 +325,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     mDBHandler.Reset();
                     JSONObject request = new JSONObject();
                     try {
-                        request.put("phone_number", savingAccount.getPhoneNumber());
+                        request.put("phone_number", mSavingAccount.getPhoneNumber());
                     } catch (JSONException e) {
                         e.printStackTrace();
                     }
@@ -341,8 +354,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
                             mDBHandler.createStation(stationName, latitude.floatValue(), longitude.floatValue(), lineName);
                         }
-                        DBloaded[1] = true;
-                        handler.post(timeoutProcess);
+                        mDBloaded[1] = true;
+                        mTimeoutHandler.post(mTimeoutProcess);
 
                     } catch (JSONException e) {
                         e.printStackTrace();
@@ -365,7 +378,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
                             mDBHandler.createLine(line.getString("name"));
                         }
-                        DBloaded[0] = true;
+                        mDBloaded[0] = true;
                         mSocket.emit("stationRequest");
 
                     } catch (JSONException e) {
@@ -386,15 +399,15 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     try {
                         JSONArray dataArray = (JSONArray) args[0];
                         JSONObject data = dataArray.getJSONObject(0);
-                        savingAccount.setFirstName(data.getString("first_name"));
-                        savingAccount.setLastName(data.getString("last_name"));
-                        savingAccount.setEmail(data.getString("email"));
-                        savingAccount.setPassword(data.getString("password"));
-                        savingAccount.setDuration(data.getDouble("duration"));
-                        savingAccount.setDistance(data.getDouble("distance"));
-                        savingAccount.setNbrTravel(data.getInt("nbr_travel"));
-                        savingAccount.setTripAborted(data.getInt("penalization"));
-                        savingAccount.setConnected(data.getInt("state") != 0);
+                        mSavingAccount.setFirstName(data.getString("first_name"));
+                        mSavingAccount.setLastName(data.getString("last_name"));
+                        mSavingAccount.setEmail(data.getString("email"));
+                        mSavingAccount.setPassword(data.getString("password"));
+                        mSavingAccount.setDuration(data.getDouble("duration"));
+                        mSavingAccount.setDistance(data.getDouble("distance"));
+                        mSavingAccount.setNbrTravel(data.getInt("nbr_travel"));
+                        mSavingAccount.setTripAborted(data.getInt("penalization"));
+                        mSavingAccount.setConnected(data.getInt("state") != 0);
 
                     } catch (JSONException e) {
                         e.printStackTrace();

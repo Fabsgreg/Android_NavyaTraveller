@@ -15,9 +15,6 @@ import android.widget.Toast;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 import navya.tech.navyatraveller.MainActivity;
 import navya.tech.navyatraveller.R;
 
@@ -32,8 +29,10 @@ public class MyAccountFragment extends Fragment implements View.OnClickListener 
     private TextView mPassword;
     private TextView mConfirmPassword;
     private TextView mPhoneNumber;
-    private Button mChange;
-    private Button mLogOut;
+
+    //
+    ////////////////////////////////////////////////////  View Override /////////////////////////////////////////////////////////
+    //
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -46,8 +45,8 @@ public class MyAccountFragment extends Fragment implements View.OnClickListener 
         mPassword = (TextView) v.findViewById(R.id.p_text);
         mConfirmPassword = (TextView) v.findViewById(R.id.c_text);
         mPhoneNumber = (TextView) v.findViewById(R.id.myphone_text);
-        mChange = (Button) v.findViewById(R.id.change_button);
-        mLogOut = (Button) v.findViewById(R.id.out_button);
+        Button mChange = (Button) v.findViewById(R.id.change_button);
+        Button mLogOut = (Button) v.findViewById(R.id.out_button);
 
         mChange.setOnClickListener(this);
         mLogOut.setOnClickListener(this);
@@ -65,10 +64,10 @@ public class MyAccountFragment extends Fragment implements View.OnClickListener 
             String firstName = mFirstNameText.getText().toString();
             String lastName = mLastNameText.getText().toString();
 
-            if (password.equalsIgnoreCase(MainActivity.savingAccount.getPassword())     &&
-                email.equalsIgnoreCase(MainActivity.savingAccount.getEmail())           &&
-                firstName.equalsIgnoreCase(MainActivity.savingAccount.getFirstName())   &&
-                lastName.equalsIgnoreCase(MainActivity.savingAccount.getLastName()))
+            if (password.equalsIgnoreCase(MainActivity.getSavingAccount().getPassword())     &&
+                email.equalsIgnoreCase(MainActivity.getSavingAccount().getEmail())           &&
+                firstName.equalsIgnoreCase(MainActivity.getSavingAccount().getFirstName())   &&
+                lastName.equalsIgnoreCase(MainActivity.getSavingAccount().getLastName()))
             {
                 Toast.makeText(getActivity(),"Nothing has changed",Toast.LENGTH_LONG).show();
             }
@@ -99,11 +98,11 @@ public class MyAccountFragment extends Fragment implements View.OnClickListener 
                 try {
                     request.put("first_name", firstName);
                     request.put("last_name", lastName);
-                    request.put("phone_number", MainActivity.savingAccount.getPhoneNumber());
+                    request.put("phone_number", MainActivity.getSavingAccount().getPhoneNumber());
                     request.put("email", email);
                     request.put("password", password);
 
-                    MainActivity.mSocket.emit("changeRequest", request);
+                    MainActivity.getSocket().emit("changeRequest", request);
                     ShowMyDialog("Info","Information changed");
                     MainActivity.UpdateAccountData();
                 } catch (JSONException e) {
@@ -115,10 +114,10 @@ public class MyAccountFragment extends Fragment implements View.OnClickListener 
         else if (v.getId() == R.id.out_button) {
             JSONObject request = new JSONObject();
             try {
-                request.put("phone_number", MainActivity.savingAccount.getPhoneNumber());
-                MainActivity.mSocket.emit("accountDisconnected", request);
-                MainActivity.savingAccount.setConnected(false);
-                ((MainActivity) getActivity()).onNavigationItemSelected(((MainActivity) getActivity()).navigationView.getMenu().getItem(3).setChecked(true));
+                request.put("phone_number", MainActivity.getSavingAccount().getPhoneNumber());
+                MainActivity.getSocket().emit("accountDisconnected", request);
+                MainActivity.getSavingAccount().setConnected(false);
+                ((MainActivity) getActivity()).onNavigationItemSelected(((MainActivity) getActivity()).mNavigationView.getMenu().getItem(3).setChecked(true));
             } catch (JSONException e) {
                 e.printStackTrace();
             }
@@ -133,13 +132,17 @@ public class MyAccountFragment extends Fragment implements View.OnClickListener 
     @Override
     public void onResume() {
         super.onResume();
-        mFirstNameText.setText(MainActivity.savingAccount.getFirstName());
-        mLastNameText.setText(MainActivity.savingAccount.getLastName());
-        mEmailText.setText(MainActivity.savingAccount.getEmail());
-        mPassword.setText(MainActivity.savingAccount.getPassword());
+        mFirstNameText.setText(MainActivity.getSavingAccount().getFirstName());
+        mLastNameText.setText(MainActivity.getSavingAccount().getLastName());
+        mEmailText.setText(MainActivity.getSavingAccount().getEmail());
+        mPassword.setText(MainActivity.getSavingAccount().getPassword());
         mConfirmPassword.setText("");
-        mPhoneNumber.setText(MainActivity.savingAccount.getPhoneNumber());
+        mPhoneNumber.setText(MainActivity.getSavingAccount().getPhoneNumber());
     }
+
+    //
+    ////////////////////////////////////////////////////  Miscellaneous functions   /////////////////////////////////////////////////////////
+    //
 
     private void ShowMyDialog (String title, String text) {
         Context context = getActivity();

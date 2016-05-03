@@ -15,17 +15,17 @@ import java.util.List;
 public class MyDBHandler extends SQLiteOpenHelper {
 
     // columns of the line table
-    public static final String TABLE_LINES = "lines";
-    public static final String COLUMN_LINE_ID = "_id";
-    public static final String COLUMN_LINE_NAME = "line_name";
+    private static final String TABLE_LINES = "lines";
+    private static final String COLUMN_LINE_ID = "_id";
+    private static final String COLUMN_LINE_NAME = "line_name";
 
     // columns of the station table
-    public static final String TABLE_STATIONS = "stations";
-    public static final String COLUMN_STATION_ID = "_id";
-    public static final String COLUMN_STATION_NAME = "station_name";
-    public static final String COLUMN_STATION_LAT = "station_lat";
-    public static final String COLUMN_STATION_LNG = "station_lng";
-    public static final String COLUMN_STATION_LINE_NAME = "line_name";
+    private static final String TABLE_STATIONS = "stations";
+    private static final String COLUMN_STATION_ID = "_id";
+    private static final String COLUMN_STATION_NAME = "station_name";
+    private static final String COLUMN_STATION_LAT = "station_lat";
+    private static final String COLUMN_STATION_LNG = "station_lng";
+    private static final String COLUMN_STATION_LINE_NAME = "line_name";
 
     private static final String DATABASE_NAME = "NavyaLines.db";
     private static final int DATABASE_VERSION = 1;
@@ -48,12 +48,9 @@ public class MyDBHandler extends SQLiteOpenHelper {
     private String[] _AllColumnsLine = { COLUMN_LINE_ID, COLUMN_LINE_NAME };
     private String[] _AllColumnsStation = {COLUMN_STATION_ID, COLUMN_STATION_NAME, COLUMN_STATION_LAT, COLUMN_STATION_LNG, COLUMN_STATION_LINE_NAME};
 
-
-
-
-    public MyDBHandler(Context context) {
-        super(context, DATABASE_NAME, null, DATABASE_VERSION);
-    }
+    //
+    ////////////////////////////////////////////////////  Database Override /////////////////////////////////////////////////////////
+    //
 
     @Override
     public void onCreate(SQLiteDatabase db) {
@@ -71,6 +68,14 @@ public class MyDBHandler extends SQLiteOpenHelper {
         onCreate(db);
     }
 
+    //
+    ////////////////////////////////////////////////////  Miscellaneous functions   /////////////////////////////////////////////////////////
+    //
+
+    public MyDBHandler(Context context) {
+        super(context, DATABASE_NAME, null, DATABASE_VERSION);
+    }
+
     public void Reset() {
         SQLiteDatabase db = this.getWritableDatabase();
 
@@ -81,6 +86,8 @@ public class MyDBHandler extends SQLiteOpenHelper {
         // recreate the tables
         onCreate(db);
     }
+
+    /////// Line //////////
 
     public Line createLine(String name) {
         SQLiteDatabase db = this.getWritableDatabase();
@@ -97,25 +104,6 @@ public class MyDBHandler extends SQLiteOpenHelper {
         db.close();
         return newLine;
     }
-
-/*    public void deleteLine(Line line) {
-        SQLiteDatabase db;
-        String lineName = line.getName();
-
-        // delete all stations of this companyline
-
-        List<Station> listStations = this.getStationsOfLine(lineName);
-        if (listStations != null && !listStations.isEmpty()) {
-            for (Station e : listStations) {
-                deleteStation(e);
-            }
-        }
-
-        db = this.getWritableDatabase();
-        db.delete(TABLE_LINES, COLUMN_LINE_ID + " = " + line.getId(), null);
-        db.close();
-    }*/
-
 
     public List<Line> getAllLines() {
         SQLiteDatabase db = this.getWritableDatabase();
@@ -151,10 +139,28 @@ public class MyDBHandler extends SQLiteOpenHelper {
 
     protected Line cursorToLine(Cursor cursor) {
         Line line = new Line();
-        line.setId(cursor.getInt(0));
+        line.setId(cursor.getLong(0));
         line.setName(cursor.getString(1));
         return line;
     }
+
+    /*    public void deleteLine(Line line) {
+        SQLiteDatabase db;
+        String lineName = line.getName();
+
+        // delete all stations of this companyline
+
+        List<Station> listStations = this.getStationsOfLine(lineName);
+        if (listStations != null && !listStations.isEmpty()) {
+            for (Station e : listStations) {
+                deleteStation(e);
+            }
+        }
+
+        db = this.getWritableDatabase();
+        db.delete(TABLE_LINES, COLUMN_LINE_ID + " = " + line.getId(), null);
+        db.close();
+    }*/
 
     /////// Station //////////
 
@@ -175,14 +181,6 @@ public class MyDBHandler extends SQLiteOpenHelper {
         db.close();
         return newStation;
     }
-
-/*    public void deleteStation(Station station) {
-        SQLiteDatabase db = this.getWritableDatabase();
-        long id = station.getId();
-
-        db.delete(TABLE_STATIONS, COLUMN_STATION_ID + " = " + id, null);
-        db.close();
-    }*/
 
     public List<Station> getAllStations() {
         List<Station> listStations = new ArrayList<>();
@@ -242,8 +240,6 @@ public class MyDBHandler extends SQLiteOpenHelper {
         return listStations;
     }
 
-
-
     public Station getStationByName(String name) {
         SQLiteDatabase db = this.getWritableDatabase();
         Cursor cursor = db.query(TABLE_STATIONS, _AllColumnsStation, COLUMN_STATION_NAME + " = ?", new String[]{name}, null, null, null);
@@ -258,10 +254,10 @@ public class MyDBHandler extends SQLiteOpenHelper {
 
     private Station cursorToStation(Cursor cursor) {
         Station station = new Station();
-        station.setId(cursor.getInt(0));
+        station.setId(cursor.getLong(0));
         station.setStationName(cursor.getString(1));
-        station.setLat(cursor.getFloat(2));
-        station.setLng(cursor.getFloat(3));
+        station.setLat(cursor.getDouble(2));
+        station.setLng(cursor.getDouble(3));
 
 
         // get The line by name
@@ -273,6 +269,14 @@ public class MyDBHandler extends SQLiteOpenHelper {
 
         return station;
     }
+
+    /*    public void deleteStation(Station station) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        long id = station.getId();
+
+        db.delete(TABLE_STATIONS, COLUMN_STATION_ID + " = " + id, null);
+        db.close();
+    }*/
 
 }
 

@@ -18,7 +18,6 @@ import org.json.JSONObject;
 import io.socket.emitter.Emitter;
 import navya.tech.navyatraveller.MainActivity;
 import navya.tech.navyatraveller.R;
-import navya.tech.navyatraveller.SaveResult;
 
 /**
  * Created by gregoire.frezet on 21/04/2016.
@@ -30,16 +29,18 @@ public class SignUpFragment extends Fragment implements View.OnClickListener {
     private TextView mEmailText;
     private TextView mPassword;
     private TextView mConfirmPassword;
-    private TextView mPhoneNumber;
-    private Button  mSignUp;
+
+    //
+    ////////////////////////////////////////////////////  View Override /////////////////////////////////////////////////////////
+    //
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        MainActivity.mSocket.on("signUpSuccessful", onSigningUpResultReceived);
-        MainActivity.mSocket.on("emailError", onEmailError);
-        MainActivity.mSocket.on("phoneNumberError", onSignUpPhoneNumberError);
+        MainActivity.getSocket().on("signUpSuccessful", onSigningUpResultReceived);
+        MainActivity.getSocket().on("emailError", onEmailError);
+        MainActivity.getSocket().on("phoneNumberError", onSignUpPhoneNumberError);
     }
 
     @Override
@@ -52,10 +53,10 @@ public class SignUpFragment extends Fragment implements View.OnClickListener {
         mEmailText = (TextView) v.findViewById(R.id.email_text);
         mPassword = (TextView) v.findViewById(R.id.password_text);
         mConfirmPassword = (TextView) v.findViewById(R.id.confirm_passwaord_text);
-        mPhoneNumber = (TextView) v.findViewById(R.id.phone_number_text);
-        mSignUp = (Button) v.findViewById(R.id.signUp_button);
+        TextView mPhoneNumber = (TextView) v.findViewById(R.id.phone_number_text);
+        Button mSignUp = (Button) v.findViewById(R.id.signUp_button);
 
-        mPhoneNumber.setText(MainActivity.savingAccount.getPhoneNumber());
+        mPhoneNumber.setText(MainActivity.getSavingAccount().getPhoneNumber());
 
         mSignUp.setOnClickListener(this);
 
@@ -98,11 +99,11 @@ public class SignUpFragment extends Fragment implements View.OnClickListener {
             try {
                 request.put("first_name", firstName);
                 request.put("last_name", lastName);
-                request.put("phone_number", MainActivity.savingAccount.getPhoneNumber());
+                request.put("phone_number", MainActivity.getSavingAccount().getPhoneNumber());
                 request.put("email", email);
                 request.put("password", password);
 
-                MainActivity.mSocket.emit("signUpRequest", request);
+                MainActivity.getSocket().emit("signUpRequest", request);
             } catch (JSONException e) {
                 e.printStackTrace();
             }
@@ -124,6 +125,10 @@ public class SignUpFragment extends Fragment implements View.OnClickListener {
         mConfirmPassword.setText("");
     }
 
+    //
+    ////////////////////////////////////////////////////  Miscellaneous functions   /////////////////////////////////////////////////////////
+    //
+
     private void ShowMyDialog (String title, String text) {
         Context context = getActivity();
         AlertDialog ad = new AlertDialog.Builder(context).create();
@@ -139,8 +144,9 @@ public class SignUpFragment extends Fragment implements View.OnClickListener {
         ad.show();
     }
 
-    private SaveResult MySaving() {return MainActivity.savingData;}
-
+    //
+    ////////////////////////////////////////////////////  Socket.IO events   /////////////////////////////////////////////////////////
+    //
 
     private Emitter.Listener onSigningUpResultReceived = new Emitter.Listener() {
         @Override
@@ -148,10 +154,10 @@ public class SignUpFragment extends Fragment implements View.OnClickListener {
             getActivity().runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    MainActivity.savingAccount.setConnected(true);
+                    MainActivity.getSavingAccount().setConnected(true);
                     MainActivity.UpdateAccountData();
                     Toast.makeText(getActivity(),"Congratulations ! You're now registered",Toast.LENGTH_LONG).show();
-                    ((MainActivity) getActivity()).onNavigationItemSelected(((MainActivity) getActivity()).navigationView.getMenu().getItem(0).setChecked(true));
+                    ((MainActivity) getActivity()).onNavigationItemSelected(((MainActivity) getActivity()).mNavigationView.getMenu().getItem(0).setChecked(true));
                 }
             });
         }

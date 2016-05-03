@@ -26,34 +26,34 @@ import navya.tech.navyatraveller.R;
  */
 public class SignInFragment extends Fragment implements View.OnClickListener {
 
-    private TextView mPassForgot;
     private TextView mPassText;
     private TextView mEmailText;
-    private Button mLogButton;
 
+    //
+    ////////////////////////////////////////////////////  View Override /////////////////////////////////////////////////////////
+    //
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        MainActivity.mSocket.on("emailNotFound", onEmailNotFound);
-        MainActivity.mSocket.on("emailSent", onEmailSent);
-        MainActivity.mSocket.on("recipientRejected", onRecipientRejected);
-        MainActivity.mSocket.on("signInFailed", onSignInFailed);
-        MainActivity.mSocket.on("signInSuccessful", onSignInSuccessful);
-        MainActivity.mSocket.on("phoneNumberError", onSignInPhoneNumberError);
+        MainActivity.getSocket().on("emailNotFound", onEmailNotFound);
+        MainActivity.getSocket().on("emailSent", onEmailSent);
+        MainActivity.getSocket().on("recipientRejected", onRecipientRejected);
+        MainActivity.getSocket().on("signInFailed", onSignInFailed);
+        MainActivity.getSocket().on("signInSuccessful", onSignInSuccessful);
+        MainActivity.getSocket().on("phoneNumberError", onSignInPhoneNumberError);
     }
-
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
 
         View v = inflater.inflate(R.layout.sign_in_fragment, container, false);
 
-        mPassForgot = (TextView) v.findViewById(R.id.pass_forgot);
+        TextView mPassForgot = (TextView) v.findViewById(R.id.pass_forgot);
         mPassText = (TextView) v.findViewById(R.id.pass_text);
         mEmailText = (TextView) v.findViewById(R.id.email_text);
-        mLogButton = (Button) v.findViewById(R.id.log_button);
+        Button mLogButton = (Button) v.findViewById(R.id.log_button);
 
         mPassForgot.setOnClickListener(this);
         mLogButton.setOnClickListener(this);
@@ -86,7 +86,7 @@ public class SignInFragment extends Fragment implements View.OnClickListener {
                         JSONObject request = new JSONObject();
                         try {
                             request.put("email", email);
-                            MainActivity.mSocket.emit("passForgotRequest", request);
+                            MainActivity.getSocket().emit("passForgotRequest", request);
                         } catch (JSONException e) {
                             e.printStackTrace();
                         }
@@ -113,8 +113,8 @@ public class SignInFragment extends Fragment implements View.OnClickListener {
                 try {
                     request.put("email", email);
                     request.put("password", password);
-                    request.put("phone_number", MainActivity.savingAccount.getPhoneNumber());
-                    MainActivity.mSocket.emit("signInRequest", request);
+                    request.put("phone_number", MainActivity.getSavingAccount().getPhoneNumber());
+                    MainActivity.getSocket().emit("signInRequest", request);
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
@@ -128,6 +128,10 @@ public class SignInFragment extends Fragment implements View.OnClickListener {
         mEmailText.setText("");
         mPassText.setText("");
     }
+
+    //
+    ////////////////////////////////////////////////////  Miscellaneous functions   /////////////////////////////////////////////////////////
+    //
 
     private void ShowMyDialog (String title, String text) {
         Context context = getActivity();
@@ -143,6 +147,10 @@ public class SignInFragment extends Fragment implements View.OnClickListener {
         });
         ad.show();
     }
+
+    //
+    ////////////////////////////////////////////////////  Socket.IO events   /////////////////////////////////////////////////////////
+    //
 
     private Emitter.Listener onEmailNotFound = new Emitter.Listener() {
         @Override
@@ -215,10 +223,10 @@ public class SignInFragment extends Fragment implements View.OnClickListener {
             getActivity().runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    MainActivity.savingAccount.setConnected(true);
+                    MainActivity.getSavingAccount().setConnected(true);
                     MainActivity.UpdateAccountData();
                     Toast.makeText(getActivity(),"Congratulations ! You're now logged in",Toast.LENGTH_LONG).show();
-                    ((MainActivity) getActivity()).onNavigationItemSelected(((MainActivity) getActivity()).navigationView.getMenu().getItem(0).setChecked(true));
+                    ((MainActivity) getActivity()).onNavigationItemSelected(((MainActivity) getActivity()).mNavigationView.getMenu().getItem(0).setChecked(true));
                 }
             });
         }

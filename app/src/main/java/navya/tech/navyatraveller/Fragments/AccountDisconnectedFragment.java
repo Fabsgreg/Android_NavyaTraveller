@@ -11,7 +11,6 @@ import android.view.ViewGroup;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.TabHost;
 
-import navya.tech.navyatraveller.MainActivity;
 import navya.tech.navyatraveller.R;
 
 /**
@@ -19,12 +18,14 @@ import navya.tech.navyatraveller.R;
  */
 public class AccountDisconnectedFragment extends Fragment {
 
-    private FragmentTabHost mTabHostDisconnected;
+    //
+    ////////////////////////////////////////////////////  View Override /////////////////////////////////////////////////////////
+    //
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
 
-        mTabHostDisconnected = new FragmentTabHost(getActivity());
+        FragmentTabHost mTabHostDisconnected = new FragmentTabHost(getActivity());
         mTabHostDisconnected.setup(getActivity(), getChildFragmentManager(), R.layout.account_disconnected_fragment);
 
         mTabHostDisconnected.addTab(mTabHostDisconnected.newTabSpec("Tab1").setIndicator("Sign In"), SignInFragment.class, null);
@@ -39,13 +40,18 @@ public class AccountDisconnectedFragment extends Fragment {
         return mTabHostDisconnected;
     }
 
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+    }
+
+    //
+    ////////////////////////////////////////////////////  Miscellaneous functions   /////////////////////////////////////////////////////////
+    //
+
     public static void closeKeyboard(Context c, IBinder windowToken) {
         InputMethodManager mgr = (InputMethodManager) c.getSystemService(Context.INPUT_METHOD_SERVICE);
         mgr.hideSoftInputFromWindow(windowToken, 0);
     }
 
-    @Override
-    public void onDestroyView() {
-        super.onDestroyView();
-    }
 }

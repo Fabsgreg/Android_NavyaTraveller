@@ -9,6 +9,10 @@ import java.net.URL;
 
 import android.util.Log;
 
+/**
+ * Created by gregoire.frezet on 24/03/2016.
+ */
+
 public class HttpConnection {
     public String readUrl(String mapsApiDirectionsUrl) throws IOException {
         String data = "";

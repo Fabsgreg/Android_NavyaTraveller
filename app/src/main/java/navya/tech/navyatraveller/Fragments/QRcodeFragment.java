@@ -19,7 +19,6 @@ import navya.tech.navyatraveller.Databases.MyDBHandler;
 import navya.tech.navyatraveller.Databases.Station;
 import navya.tech.navyatraveller.MainActivity;
 import navya.tech.navyatraveller.R;
-import navya.tech.navyatraveller.SaveResult;
 
 /**
  * Created by gregoire.frezet on 25/03/2016.
@@ -27,6 +26,10 @@ import navya.tech.navyatraveller.SaveResult;
 public class QRcodeFragment extends Fragment {
 
     private MyDBHandler mDBHandler;
+
+    //
+    ////////////////////////////////////////////////////  View Override /////////////////////////////////////////////////////////
+    //
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -44,7 +47,6 @@ public class QRcodeFragment extends Fragment {
     public void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
     }
-
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -67,25 +69,25 @@ public class QRcodeFragment extends Fragment {
 
             if (isStationExisting) {
                 Station stationScanned = mDBHandler.getStationByName(scanContent);
-                MySaving().Reset();
-                MySaving().setStartStation(stationScanned);
-                MySaving().setLine(stationScanned.getLine());
-                MySaving().setStationScanned(scanContent);
-                MySaving().setPreviousFragment("QR Code");
+                MainActivity.getSavingResult().Reset();
+                MainActivity.getSavingResult().setStartStation(stationScanned);
+                MainActivity.getSavingResult().setLine(stationScanned.getLine());
+                MainActivity.getSavingResult().setStationScanned(scanContent);
+                MainActivity.getSavingResult().setPreviousFragment("QR Code");
             }
             else {
                 ShowMyDialog("Error","The station scanned doesn't exist");
                 return;
             }
         }
-        ((MainActivity) getActivity()).onNavigationItemSelected(((MainActivity) getActivity()).navigationView.getMenu().getItem(0).setChecked(true));
+        ((MainActivity) getActivity()).onNavigationItemSelected(((MainActivity) getActivity()).mNavigationView.getMenu().getItem(0).setChecked(true));
     }
 
-    public SaveResult MySaving() {
-        return MainActivity.savingData;
-    }
+    //
+    ////////////////////////////////////////////////////  Miscellaneous functions   /////////////////////////////////////////////////////////
+    //
 
-    public void ShowMyDialog (String title, String text) {
+    private void ShowMyDialog (String title, String text) {
         Context context = getActivity();
         AlertDialog ad = new AlertDialog.Builder(context).create();
         ad.setCancelable(false);
@@ -95,12 +97,10 @@ public class QRcodeFragment extends Fragment {
 
             public void onClick(DialogInterface dialog, int which) {
                 dialog.dismiss();
-                ((MainActivity) getActivity()).onNavigationItemSelected(((MainActivity) getActivity()).navigationView.getMenu().getItem(0).setChecked(true));
+                ((MainActivity) getActivity()).onNavigationItemSelected(((MainActivity) getActivity()).mNavigationView.getMenu().getItem(0).setChecked(true));
             }
         });
         ad.show();
     }
-
-
 
 }

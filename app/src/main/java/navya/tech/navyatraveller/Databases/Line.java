@@ -7,24 +7,27 @@ import java.io.Serializable;
  */
 public class Line implements Serializable {
 
-    private int _id;
-    private String _name;
+    private Long id;
+    private String name;
 
     public Line() {}
 
-    public long getId() {
-        return _id;
-    }
-
-    public void setId(int id) {
-        this._id = id;
-    }
-
-    public String getName() {
-        return _name;
+    // Getter & Setter
+    public void setId(Long id) {
+        this.id = id;
     }
 
     public void setName(String name) {
-        this._name = name;
+        this.name = name;
     }
+
+    public String getName() {
+        return name;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+
 }
