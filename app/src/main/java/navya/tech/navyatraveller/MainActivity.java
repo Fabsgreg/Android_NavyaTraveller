@@ -43,7 +43,7 @@ import navya.tech.navyatraveller.Fragments.QRcodeFragment;
 public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
 
     // Global variable
-    public static final String ipAddress = "10.0.20.144";
+    public static final String ipAddress = "10.0.20.72";
     public static final Integer timeout = 10000;      // Timeout for database loading in millisecond
 
     // Data saving

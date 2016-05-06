@@ -245,7 +245,16 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
                         IntentIntegrator.forSupportFragment(this).setPrompt("Please, scan the QR code near you to complete your order").initiateScan();
                     }
                     else {
-                        DisplayTravelData();
+                        // Get the index of the line selected by user
+                        int index = -1;
+                        for (int i=0; i < mSavedLine.size(); i++){
+                            if (mSavedLine.get(i).getLineName().equalsIgnoreCase(MainActivity.getSavingResult().getLine().getName())) {
+                                index = i;
+                                MainActivity.getSavingResult().setCurrentIndexOfSavedLine(index);
+                                break;
+                            }
+                        }
+                        createRequestOnServer(mSavedLine.get(index));
                         MainActivity.getSavingResult().setStationScanned("");
                     }
                 }
@@ -277,14 +286,13 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
                     }
                 }
                 createRequestOnServer(mSavedLine.get(index));
-                return;
+                //return;
             }
             else {
                 ShowMyDialog("Error","You've scanned the wrong code, please try again");
                 mLayout.setPanelState(SlidingUpPanelLayout.PanelState.HIDDEN);
             }
         }
-        mFloatingButton.callOnClick();
     }
 
     //
@@ -576,10 +584,13 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
 
     public void Update () {
         if (MainActivity.getSavingResult().getQRcode()) {
+            mStartResult.setText(MainActivity.getSavingResult().getStartStation().getStationName());
             mEndBouton.callOnClick();
         }
         else if (MainActivity.getSavingResult().getGo()) {
             mEndBouton.callOnClick();
+            mEndResult.setText(MainActivity.getSavingResult().getEndStation().getStationName());
+            mStartResult.setText(MainActivity.getSavingResult().getStartStation().getStationName());
             mFloatingButton.callOnClick();
         }
         MainActivity.getSavingResult().setPreviousFragment("Map");

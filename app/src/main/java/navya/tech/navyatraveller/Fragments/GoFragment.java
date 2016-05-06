@@ -86,12 +86,10 @@ public class GoFragment extends Fragment implements View.OnClickListener, Adapte
     public void onClick(View v) {
 
         if (v.getId() == R.id.go_button) {
-
-            Context context = getActivity();
-            AlertDialog ad = new AlertDialog.Builder(context).create();
-            ad.setCancelable(false);
-
             if (mGoSpinnerStart.getSelectedItem().toString().equalsIgnoreCase(mGoSpinnerEnd.getSelectedItem().toString())){
+                Context context = getActivity();
+                AlertDialog ad = new AlertDialog.Builder(context).create();
+                ad.setCancelable(false);
                 ad.setTitle("Error");
                 ad.setMessage("You must pick two different stations");
                 ad.setButton(-1, "OK", new DialogInterface.OnClickListener() {
@@ -100,6 +98,7 @@ public class GoFragment extends Fragment implements View.OnClickListener, Adapte
                         dialog.dismiss();
                     }
                 });
+                ad.show();
             }
             else {
                 Station startStation = mDBHandler.getStationByName(mGoSpinnerStart.getSelectedItem().toString());
@@ -112,11 +111,7 @@ public class GoFragment extends Fragment implements View.OnClickListener, Adapte
                 MainActivity.getSavingResult().setPreviousFragment("Go");
 
                 ((MainActivity) getActivity()).onNavigationItemSelected(((MainActivity) getActivity()).mNavigationView.getMenu().getItem(0).setChecked(true));
-
-                return;
             }
-
-            ad.show();
         }
     }
 
