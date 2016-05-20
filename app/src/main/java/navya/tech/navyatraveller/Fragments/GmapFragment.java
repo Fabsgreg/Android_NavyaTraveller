@@ -110,12 +110,11 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
         MainActivity.getSocket().on("position", onNewShuttlePosition);
         MainActivity.getSocket().on("shuttleDisconnected", onShuttleDisconnected);
         MainActivity.getSocket().on("tripAccepted", onTripAccepted);
-        MainActivity.getSocket().on("tripEnded", onTripEnded);
+        MainActivity.getSocket().on("tripCompleted", onTripCompleted);
         MainActivity.getSocket().on("tripRefused", onTripRefused);
-        MainActivity.getSocket().on("tripAbortedCallback", onTripAborted);
+        MainActivity.getSocket().on("tripAborted", onTripAborted);
         MainActivity.getSocket().on("shuttleUnavailable", onShuttleUnavailable);
         MainActivity.getSocket().on("shuttleArrived", onShuttleArrived);
-        MainActivity.getSocket().on(Socket.EVENT_DISCONNECT, onDisconnect);
     }
 
     @Override
@@ -220,7 +219,7 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
                         } catch (JSONException e) {
                             e.printStackTrace();
                         }
-                        TripEnded();
+                        TripCompleted();
                     }
                 });
                 builder.setNegativeButton("No", new DialogInterface.OnClickListener() {
@@ -237,6 +236,11 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
 
                     if (!MainActivity.getSavingAccount().getConnected()) {
                         ShowMyDialog("Info","You need to be logged in before to request a trip");
+                        return;
+                    }
+
+                    if (!MainActivity.getSavingAccount().getInternetAvailable()) {
+                        ShowMyDialog("Info","Server unavailable, please check your connection");
                         return;
                     }
 
@@ -560,7 +564,7 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
     ////////////////////////////////////////////////////  Miscellaneous functions   /////////////////////////////////////////////////////////
     //
 
-    private void TripEnded () {
+    private void TripCompleted() {
         // Hide the SlidingUpPanel
         mLayout.setPanelState(SlidingUpPanelLayout.PanelState.HIDDEN);
 
@@ -699,15 +703,15 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
         }
     };
 
-    private Emitter.Listener onTripEnded = new Emitter.Listener() {
+    private Emitter.Listener onTripCompleted = new Emitter.Listener() {
         @Override
         public void call(final Object... args) {
             getActivity().runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
                     MainActivity.UpdateAccountData();
-                    TripEnded();
-                    ShowMyDialog("Info","Trip ended");
+                    TripCompleted();
+                    ShowMyDialog("Info","Trip completed");
                 }
             });
         }
@@ -738,17 +742,6 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
         }
     };
 
-    private Emitter.Listener onDisconnect = new Emitter.Listener() {
-        @Override
-        public void call(final Object... args) {
-            getActivity().runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                }
-            });
-        }
-    };
-
     private Emitter.Listener onNewShuttlePosition = new Emitter.Listener() {
         @Override
         public void call(final Object... args) {
@@ -767,7 +760,7 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
                         if (mNavyaMarkers.containsKey(name)) {
                             (mNavyaMarkers.get(name)).setPosition(new LatLng(lat, lng));
                         }
-                        else {
+                        else if (mGoogleMap != null){
                             Marker tmp = mGoogleMap.addMarker(new MarkerOptions()
                                     .position(new LatLng(lat, lng))
                                     .icon(BitmapDescriptorFactory.fromResource(R.mipmap.ic_bus))

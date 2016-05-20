@@ -16,6 +16,7 @@ public class SavingAccount {
     private Integer tripAborted;
     private String phoneNumber;
     private Integer nbrTravel;
+    private Boolean isInternetAvailable;
 
     public SavingAccount() {
         this.password = "";
@@ -28,6 +29,7 @@ public class SavingAccount {
         this.tripAborted = 0;
         this.phoneNumber = "";
         this.nbrTravel = 0;
+        this.isInternetAvailable = false;
     }
 
 
@@ -72,6 +74,8 @@ public class SavingAccount {
         this.nbrTravel = nbrTravel;
     }
 
+    public void setInternetAvailable(Boolean internetAvailable) { this.isInternetAvailable = internetAvailable; }
+
     public Boolean getConnected() {
         return isConnected;
     }
@@ -110,5 +114,9 @@ public class SavingAccount {
 
     public Integer getNbrTravel() {
         return nbrTravel;
+    }
+
+    public Boolean getInternetAvailable() {
+        return isInternetAvailable;
     }
 }

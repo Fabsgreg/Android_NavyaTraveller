@@ -148,6 +148,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             mSocket = IO.socket("http://"+MainActivity.ipAddress+":3001");
             mSocket.connect();
             mSocket.on(Socket.EVENT_CONNECT, onConnect);
+            mSocket.on(Socket.EVENT_DISCONNECT, onDisconnect);
             mSocket.on("stationReceived", onStationReceived);
             mSocket.on("lineReceived", onlineReceived);
             mSocket.on("accountDataUpdated", onAccountDataUpdated);
@@ -331,6 +332,19 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     }
                     mSocket.emit("nameUpdate",request);
                     mSocket.emit("lineRequest");
+                    mSavingAccount.setInternetAvailable(true);
+                }
+            });
+        }
+    };
+
+    private Emitter.Listener onDisconnect = new Emitter.Listener() {
+        @Override
+        public void call(final Object... args) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    mSavingAccount.setInternetAvailable(false);
                 }
             });
         }
