@@ -1,5 +1,6 @@
 package navya.tech.navyatraveller.Fragments;
 
+import android.bluetooth.BluetoothAdapter;
 import android.support.v4.app.Fragment;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -44,6 +45,7 @@ import com.sothree.slidinguppanel.SlidingUpPanelLayout;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -60,7 +62,6 @@ import navya.tech.navyatraveller.GoogleMapsJSONParser;
 import navya.tech.navyatraveller.R;
 import navya.tech.navyatraveller.SavingLine;
 
-import io.socket.client.Socket;
 import io.socket.emitter.Emitter;
 
 /**
@@ -97,6 +98,9 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
     // Data saving
     private List<SavingLine> mSavedLine;
 
+    // Bluetooth
+    private static final int REQUEST_DISCOVERABLE_CODE = 42;
+
 
     //
     ////////////////////////////////////////////////////  View Override /////////////////////////////////////////////////////////
@@ -109,10 +113,10 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
 
         MainActivity.getSocket().on("position", onNewShuttlePosition);
         MainActivity.getSocket().on("shuttleDisconnected", onShuttleDisconnected);
-        MainActivity.getSocket().on("tripAccepted", onTripAccepted);
-        MainActivity.getSocket().on("tripCompleted", onTripCompleted);
-        MainActivity.getSocket().on("tripRefused", onTripRefused);
-        MainActivity.getSocket().on("tripAborted", onTripAborted);
+        MainActivity.getSocket().on("journeyAccepted", onJourneyAccepted);
+        MainActivity.getSocket().on("journeyCompleted", onJourneyCompleted);
+        MainActivity.getSocket().on("journeyRefused", onJourneyRefused);
+        MainActivity.getSocket().on("journeyAborted", onJourneyAborted);
         MainActivity.getSocket().on("shuttleUnavailable", onShuttleUnavailable);
         MainActivity.getSocket().on("shuttleArrived", onShuttleArrived);
     }
@@ -215,11 +219,11 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
                         JSONObject request = new JSONObject();
                         try {
                             request.put("phone_number", MainActivity.getSavingAccount().getPhoneNumber());
-                            MainActivity.getSocket().emit("tripAborted", request);
+                            MainActivity.getSocket().emit("journeyAborted", request);
                         } catch (JSONException e) {
                             e.printStackTrace();
                         }
-                        TripCompleted();
+                        JourneyCompleted();
                     }
                 });
                 builder.setNegativeButton("No", new DialogInterface.OnClickListener() {
@@ -235,7 +239,7 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
                 if (MainActivity.getSavingResult().isGood()) {
 
                     if (!MainActivity.getSavingAccount().getConnected()) {
-                        ShowMyDialog("Info","You need to be logged in before to request a trip");
+                        ShowMyDialog("Info","You need to be logged in before to request a journey");
                         return;
                     }
 
@@ -244,23 +248,8 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
                         return;
                     }
 
-                    // Show the QRcode camera window if it hasn't been scanned before
-                    if ( !MainActivity.getSavingResult().getStationScanned().equalsIgnoreCase(MainActivity.getSavingResult().getStartStation().getStationName()) ) {
-                        IntentIntegrator.forSupportFragment(this).setPrompt("Please, scan the QR code near you to complete your order").initiateScan();
-                    }
-                    else {
-                        // Get the index of the line selected by user
-                        int index = -1;
-                        for (int i=0; i < mSavedLine.size(); i++){
-                            if (mSavedLine.get(i).getLineName().equalsIgnoreCase(MainActivity.getSavingResult().getLine().getName())) {
-                                index = i;
-                                MainActivity.getSavingResult().setCurrentIndexOfSavedLine(index);
-                                break;
-                            }
-                        }
-                        createRequestOnServer(mSavedLine.get(index));
-                        MainActivity.getSavingResult().setStationScanned("");
-                    }
+                    setBluetooth(true);
+                    setBluetoothDiscoverable(true);
                 }
                 else {
                     ShowMyDialog("Error", "You must pick two different stations on the same line");
@@ -272,29 +261,61 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
 
-        IntentResult scanningResult = IntentIntegrator.parseActivityResult(requestCode, resultCode, data);
-        if (resultCode != 0) {
+        if (requestCode == REQUEST_DISCOVERABLE_CODE) {
+            // Bluetooth Discoverable Mode does not return the standard
+            // Activity result codes.
+            // Instead, the result code is the duration (seconds) of
+            // discoverability or a negative number if the user answered "NO".
+            if (resultCode > 0) {
+                Toast.makeText(getActivity(),"Bluetooth connection will be disabled after your journey",Toast.LENGTH_LONG).show();
 
-            // get message
-            String scanContent = scanningResult.getContents();
-
-            if (scanContent.equalsIgnoreCase(MainActivity.getSavingResult().getStartStation().getStationName())) {
-
-                // Get the index of the line selected by user
-                int index = -1;
-                for (int i=0; i < mSavedLine.size(); i++){
-                    if (mSavedLine.get(i).getLineName().equalsIgnoreCase(MainActivity.getSavingResult().getLine().getName())) {
-                        index = i;
-                        MainActivity.getSavingResult().setCurrentIndexOfSavedLine(index);
-                        break;
-                    }
+                // Show the QRcode camera window if it hasn't been scanned before
+                if ( !MainActivity.getSavingResult().getStationScanned().equalsIgnoreCase(MainActivity.getSavingResult().getStartStation().getStationName()) ) {
+                    IntentIntegrator.forSupportFragment(this).setPrompt("Please, scan the QR code near you to complete your order").initiateScan();
                 }
-                createRequestOnServer(mSavedLine.get(index));
-                //return;
+                else {
+                    // Get the index of the line selected by user
+                    int index = -1;
+                    for (int i=0; i < mSavedLine.size(); i++){
+                        if (mSavedLine.get(i).getLineName().equalsIgnoreCase(MainActivity.getSavingResult().getLine().getName())) {
+                            index = i;
+                            MainActivity.getSavingResult().setCurrentIndexOfSavedLine(index);
+                            break;
+                        }
+                    }
+                    createRequestOnServer(mSavedLine.get(index));
+                    MainActivity.getSavingResult().setStationScanned("");
+                }
             }
             else {
-                ShowMyDialog("Error","You've scanned the wrong code, please try again");
-                mLayout.setPanelState(SlidingUpPanelLayout.PanelState.HIDDEN);
+                ShowMyDialog("Warning","You must accept the previous statement if you want to request a shuttle, do not worry, any personal data will be collected");
+            }
+        }
+        else if(requestCode == IntentIntegrator.REQUEST_CODE) {
+            IntentResult scanningResult = IntentIntegrator.parseActivityResult(requestCode, resultCode, data);
+            if (resultCode != 0) {
+
+                // get message
+                String scanContent = scanningResult.getContents();
+
+                if (scanContent.equalsIgnoreCase(MainActivity.getSavingResult().getStartStation().getStationName())) {
+
+                    // Get the index of the line selected by user
+                    int index = -1;
+                    for (int i=0; i < mSavedLine.size(); i++){
+                        if (mSavedLine.get(i).getLineName().equalsIgnoreCase(MainActivity.getSavingResult().getLine().getName())) {
+                            index = i;
+                            MainActivity.getSavingResult().setCurrentIndexOfSavedLine(index);
+                            break;
+                        }
+                    }
+                    createRequestOnServer(mSavedLine.get(index));
+                    //return;
+                }
+                else {
+                    ShowMyDialog("Error","You've scanned the wrong code, please try again");
+                    mLayout.setPanelState(SlidingUpPanelLayout.PanelState.HIDDEN);
+                }
             }
         }
     }
@@ -519,7 +540,7 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
         return ("https://maps.googleapis.com/maps/api/directions/" + output + "?" + origin + destination + params);
     }
 
-    private void DisplayTravelData () {
+    private void DisplayJourneyData() {
         MainActivity.getSavingResult().setTravelling(true);
 
         // Display the SlidingUpPanel
@@ -538,7 +559,7 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
         // Get the index of the line selected by user
         int index = MainActivity.getSavingResult().getIndex();
 
-        // Display informations about the trip
+        // Display informations about the journey
         int waitingTime = 2;
 
         mWaitingTime.setText("" + waitingTime + " min");
@@ -554,7 +575,7 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
 
         mArrivalTime.setText(DateToStr);
 
-        // Display the path associated to the current trip
+        // Display the path associated to the current journey
         showPath(MainActivity.getSavingResult().getLine().getName(), MainActivity.getSavingResult().getStartStation().getStationName(), MainActivity.getSavingResult().getEndStation().getStationName());
 
         focusOnPosition();
@@ -564,7 +585,7 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
     ////////////////////////////////////////////////////  Miscellaneous functions   /////////////////////////////////////////////////////////
     //
 
-    private void TripCompleted() {
+    private void JourneyCompleted() {
         // Hide the SlidingUpPanel
         mLayout.setPanelState(SlidingUpPanelLayout.PanelState.HIDDEN);
 
@@ -631,9 +652,10 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
             request.put("duration",String.valueOf(data.getTotalDuration(start,end)));
             request.put("distance",String.valueOf(data.getTotalDistance(start,end)));
             request.put("phone_number", MainActivity.getSavingAccount().getPhoneNumber());
+            request.put("bluetooth_address", MainActivity.getSavingAccount().getBluetoothAddress());
             request.put("state",String.valueOf(1));
 
-            MainActivity.getSocket().emit("tripRequest",request);
+            MainActivity.getSocket().emit("journeyRequest",request);
         } catch (JSONException e) {
             e.printStackTrace();
         }
@@ -660,6 +682,35 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
         return (dp * ((float)metrics.densityDpi / DisplayMetrics.DENSITY_DEFAULT));
     }
 
+    private boolean setBluetooth(boolean enable) {
+        BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+
+        MainActivity.getSavingAccount().setBluetoothAddress(bluetoothAdapter.getAddress());
+
+        boolean isEnabled = bluetoothAdapter.isEnabled();
+        if (enable && !isEnabled) {
+            return bluetoothAdapter.enable();
+        }
+        else if(!enable && isEnabled) {
+            return bluetoothAdapter.disable();
+        }
+        // No need to change bluetooth state
+        return true;
+    }
+
+    private void setBluetoothDiscoverable(boolean enable) {
+        if (enable) {
+            Intent discoverableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
+            discoverableIntent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 0);
+            startActivityForResult(discoverableIntent,REQUEST_DISCOVERABLE_CODE);
+        }
+        else {
+            BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+            Intent discoverableIntent = new Intent(bluetoothAdapter.ACTION_DISCOVERY_FINISHED);
+            startActivity(discoverableIntent);
+        }
+    }
+
     //
     ////////////////////////////////////////////////////  Socket.IO events   /////////////////////////////////////////////////////////
     //
@@ -677,53 +728,55 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
     };
 
 
-    private Emitter.Listener onTripAborted = new Emitter.Listener() {
+    private Emitter.Listener onJourneyAborted = new Emitter.Listener() {
         @Override
         public void call(final Object... args) {
             getActivity().runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    Toast.makeText(getActivity(),"Your trip has been aborted",Toast.LENGTH_LONG).show();
+                    Toast.makeText(getActivity(),"Your journey has been aborted",Toast.LENGTH_LONG).show();
                     MainActivity.UpdateAccountData();
+                    setBluetooth(false);
                 }
             });
         }
     };
 
-    private Emitter.Listener onTripAccepted = new Emitter.Listener() {
+    private Emitter.Listener onJourneyAccepted = new Emitter.Listener() {
         @Override
         public void call(final Object... args) {
             getActivity().runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    DisplayTravelData();
-                    Toast.makeText(getActivity(),"Trip accepted",Toast.LENGTH_LONG).show();
+                    DisplayJourneyData();
+                    Toast.makeText(getActivity(),"Journey accepted",Toast.LENGTH_LONG).show();
                 }
             });
         }
     };
 
-    private Emitter.Listener onTripCompleted = new Emitter.Listener() {
+    private Emitter.Listener onJourneyCompleted = new Emitter.Listener() {
         @Override
         public void call(final Object... args) {
             getActivity().runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
                     MainActivity.UpdateAccountData();
-                    TripCompleted();
-                    ShowMyDialog("Info","Trip completed");
+                    JourneyCompleted();
+                    ShowMyDialog("Info","Journey completed");
+                    setBluetooth(false);
                 }
             });
         }
     };
 
-    private Emitter.Listener onTripRefused = new Emitter.Listener() {
+    private Emitter.Listener onJourneyRefused = new Emitter.Listener() {
         @Override
         public void call(final Object... args) {
             getActivity().runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    ShowMyDialog("Info","Your accont is blocked, please contact us at developer.navya@gmail.com");
+                    ShowMyDialog("Info","Your account is blocked, please contact us at developer.navya@gmail.com");
                 }
             });
         }
@@ -781,7 +834,7 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
             getActivity().runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    Toast.makeText(getActivity(),"Your shuttle arrived, please get in",Toast.LENGTH_LONG).show();
+                    Toast.makeText(getActivity(),"Your shuttle has arrived, please get on",Toast.LENGTH_LONG).show();
                 }
             });
         }

@@ -23,7 +23,7 @@ public class HistoryFragment extends Fragment {
     private TextView mDuration;
     private TextView mDistance;
     private TextView mResult;
-    private TextView mTripAborted;
+    private TextView mJourneyAborted;
 
     //
     ////////////////////////////////////////////////////  View Override /////////////////////////////////////////////////////////
@@ -38,7 +38,7 @@ public class HistoryFragment extends Fragment {
         mDuration = (TextView) v.findViewById(R.id.duration);
         mDistance = (TextView) v.findViewById(R.id.distance);
         mResult = (TextView) v.findViewById(R.id.result);
-        mTripAborted = (TextView) v.findViewById(R.id.aborted_text);
+        mJourneyAborted = (TextView) v.findViewById(R.id.aborted_text);
 
         return v;
     }
@@ -64,7 +64,7 @@ public class HistoryFragment extends Fragment {
         mDuration.setText("" + format.format(time.getTime()) +"");
         mDistance.setText("" + truncateDecimal(distance,2) +" km");
         mResult.setText("Congratulations, you saved " + truncateDecimal(distance * 0.070,3) + " kg of CO2 by travelling with Navya");
-        mTripAborted.setText(MainActivity.getSavingAccount().getTripAborted().toString());
+        mJourneyAborted.setText(MainActivity.getSavingAccount().getJourneyAborted().toString());
     }
 
     //

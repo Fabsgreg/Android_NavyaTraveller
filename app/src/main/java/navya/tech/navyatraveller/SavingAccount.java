@@ -13,10 +13,11 @@ public class SavingAccount {
     private Double duration;
     private Double distance;
     private Boolean isConnected;
-    private Integer tripAborted;
+    private Integer journeyAborted;
     private String phoneNumber;
     private Integer nbrTravel;
     private Boolean isInternetAvailable;
+    private String bluetoothAddress;
 
     public SavingAccount() {
         this.password = "";
@@ -26,10 +27,11 @@ public class SavingAccount {
         this.duration = 0.0;
         this.distance = 0.0;
         this.isConnected = false;
-        this.tripAborted = 0;
+        this.journeyAborted = 0;
         this.phoneNumber = "";
         this.nbrTravel = 0;
         this.isInternetAvailable = false;
+        this.bluetoothAddress = "";
     }
 
 
@@ -62,8 +64,8 @@ public class SavingAccount {
         this.isConnected = connected;
     }
 
-    public void setTripAborted(Integer tripAborted) {
-        this.tripAborted = tripAborted;
+    public void setJourneyAborted(Integer journeyAborted) {
+        this.journeyAborted = journeyAborted;
     }
 
     public void setPhoneNumber(String phoneNumber) {
@@ -75,6 +77,8 @@ public class SavingAccount {
     }
 
     public void setInternetAvailable(Boolean internetAvailable) { this.isInternetAvailable = internetAvailable; }
+
+    public void setBluetoothAddress(String bluetoothAddress) { this.bluetoothAddress = bluetoothAddress; }
 
     public Boolean getConnected() {
         return isConnected;
@@ -104,8 +108,8 @@ public class SavingAccount {
         return distance;
     }
 
-    public Integer getTripAborted() {
-        return tripAborted;
+    public Integer getJourneyAborted() {
+        return journeyAborted;
     }
 
     public String getPhoneNumber() {
@@ -118,5 +122,9 @@ public class SavingAccount {
 
     public Boolean getInternetAvailable() {
         return isInternetAvailable;
+    }
+
+    public String getBluetoothAddress() {
+        return bluetoothAddress;
     }
 }

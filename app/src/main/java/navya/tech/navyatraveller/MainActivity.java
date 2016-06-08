@@ -1,7 +1,9 @@
 package navya.tech.navyatraveller;
 
+import android.bluetooth.BluetoothAdapter;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.os.Handler;
 import android.support.v4.app.Fragment;
 import android.os.Bundle;
@@ -14,6 +16,7 @@ import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.telephony.TelephonyManager;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -25,6 +28,18 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.net.URISyntaxException;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
+
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 
 import io.socket.client.IO;
 import io.socket.client.Socket;
@@ -43,7 +58,7 @@ import navya.tech.navyatraveller.Fragments.QRcodeFragment;
 public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
 
     // Global variable
-    public static final String ipAddress = "10.0.20.72";
+    public static final String ipAddress = "10.0.5.159";
     public static final Integer timeout = 10000;      // Timeout for database loading in millisecond
 
     // Data saving
@@ -66,6 +81,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     private Handler mTimeoutHandler;
     private Runnable mTimeoutProcess;
+    private boolean isFirstConnection;
 
     // Database
     private boolean[] mDBloaded;
@@ -144,8 +160,22 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         mTimeoutHandler.postDelayed(mTimeoutProcess, timeout);
 
         // Socket.IO init
+        isFirstConnection = true;
         try {
-            mSocket = IO.socket("http://"+MainActivity.ipAddress+":3001");
+
+            SSLContext sc = SSLContext.getInstance("TLS");
+            sc.init(null, trustAllCerts, new SecureRandom());
+            IO.setDefaultSSLContext(sc);
+            HttpsURLConnection.setDefaultHostnameVerifier(new RelaxedHostNameVerifier());
+
+            // socket options
+            IO.Options opts = new IO.Options();
+           // opts.forceNew = true;
+            //opts.reconnection = true;
+            opts.secure = true;
+            opts.sslContext = sc;
+
+            mSocket = IO.socket("https://"+MainActivity.ipAddress+":3001",opts);
             mSocket.connect();
             mSocket.on(Socket.EVENT_CONNECT, onConnect);
             mSocket.on(Socket.EVENT_DISCONNECT, onDisconnect);
@@ -154,7 +184,13 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             mSocket.on("accountDataUpdated", onAccountDataUpdated);
             UpdateAccountData();
 
-        } catch (URISyntaxException ignored) {}
+        }
+        catch (URISyntaxException ignored) {}
+        catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        } catch (KeyManagementException e) {
+            e.printStackTrace();
+        }
 
         // Fragment init
         mFragGMap = new GmapFragment();
@@ -323,7 +359,13 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    mDBHandler.Reset();
+                    Log.d("state",""+isFirstConnection+"");
+                    if (isFirstConnection){
+                        mDBHandler.Reset();
+                        mSocket.emit("lineRequest");
+                        isFirstConnection = false;
+                    }
+
                     JSONObject request = new JSONObject();
                     try {
                         request.put("phone_number", mSavingAccount.getPhoneNumber());
@@ -331,7 +373,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                         e.printStackTrace();
                     }
                     mSocket.emit("nameUpdate",request);
-                    mSocket.emit("lineRequest");
                     mSavingAccount.setInternetAvailable(true);
                 }
             });
@@ -420,7 +461,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                         mSavingAccount.setDuration(data.getDouble("duration"));
                         mSavingAccount.setDistance(data.getDouble("distance"));
                         mSavingAccount.setNbrTravel(data.getInt("nbr_travel"));
-                        mSavingAccount.setTripAborted(data.getInt("penalization"));
+                        mSavingAccount.setJourneyAborted(data.getInt("penalization"));
                         mSavingAccount.setConnected(data.getInt("state") != 0);
 
                     } catch (JSONException e) {
@@ -431,4 +472,28 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         }
     };
 
+    //
+    ////////////////////////////////////////////////////  SSL communication   /////////////////////////////////////////////////////////
+    //
+
+    private TrustManager[] trustAllCerts = new TrustManager[] { new X509TrustManager() {
+        public java.security.cert.X509Certificate[] getAcceptedIssuers() {
+            return new java.security.cert.X509Certificate[] {};
+        }
+
+        public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException {
+        }
+
+        public void checkServerTrusted(X509Certificate[] chain, String authType) throws CertificateException {
+        }
+    } };
+
+    public static class RelaxedHostNameVerifier implements HostnameVerifier {
+        public boolean verify(String hostname, SSLSession session) {
+            return true;
+        }
+    }
+
 }
+
+
