@@ -1,9 +1,10 @@
 package navya.tech.navyatraveller;
 
-import android.bluetooth.BluetoothAdapter;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.os.BatteryManager;
 import android.os.Handler;
 import android.support.v4.app.Fragment;
 import android.os.Bundle;
@@ -60,6 +61,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     // Global variable
     public static final String ipAddress = "10.0.5.159";
     public static final Integer timeout = 10000;      // Timeout for database loading in millisecond
+    private static final Float criticalLevel = 20.0F;
 
     // Data saving
     private static SavingResult mSavingResult;
@@ -147,11 +149,14 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         mTimeoutProcess = new Runnable() {
             @Override
             public void run() {
-                if (mDBloaded[0] && mDBloaded[1]) {
-                    onNavigationItemSelected(mNavigationView.getMenu().getItem(0).setChecked(true));
+                if (!mDBloaded[0] || !mDBloaded[1]) {
+                    ShowDialogAndExit("Your internet connection is not available", "Please, check your network before to launch the app");
+                }
+                else if (getBatteryLevel() < criticalLevel) {
+                    ShowDialogAndExit("Low level battery", "Please, reload your smartphone over " + criticalLevel + "% to use this app");
                 }
                 else {
-                    ShowMyDialog("Your internet connection is not available", "Please, check your network before to launch the app");
+                    onNavigationItemSelected(mNavigationView.getMenu().getItem(0).setChecked(true));
                 }
                 mTimeoutHandler.removeCallbacks(mTimeoutProcess);
             }
@@ -186,9 +191,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
         }
         catch (URISyntaxException ignored) {}
-        catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
-        } catch (KeyManagementException e) {
+        catch (NoSuchAlgorithmException | KeyManagementException e) {
             e.printStackTrace();
         }
 
@@ -311,7 +314,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     ////////////////////////////////////////////////////  Miscellaneous functions   /////////////////////////////////////////////////////////
     //
 
-    private void ShowMyDialog (String title, String text) {
+    private void ShowDialogAndExit (String title, String text) {
         Context context = this;
         AlertDialog ad = new AlertDialog.Builder(context).create();
         ad.setCancelable(false);
@@ -338,6 +341,18 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     }
 
+    private float getBatteryLevel() {
+        Intent batteryIntent = registerReceiver(null, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
+        int level = batteryIntent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
+        int scale = batteryIntent.getIntExtra(BatteryManager.EXTRA_SCALE, -1);
+
+        // Error checking that probably isn't needed but I added just in case.
+        if(level == -1 || scale == -1) {
+            return 50.0f;
+        }
+
+        return ((float)level / (float)scale) * 100.0f;
+    }
 
     //
     ////////////////////////////////////////////////////  Getter   /////////////////////////////////////////////////////////

@@ -45,7 +45,6 @@ import com.sothree.slidinguppanel.SlidingUpPanelLayout;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -137,8 +136,6 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
 
         mLayout = (SlidingUpPanelLayout) v.findViewById(R.id.sliding_layout);
         mLayout.setPanelState(SlidingUpPanelLayout.PanelState.HIDDEN);
-
-
 
         mStartBouton = (Button) v.findViewById(R.id.start_button);
         mStartBouton.setOnClickListener(this);
@@ -705,8 +702,7 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
             startActivityForResult(discoverableIntent,REQUEST_DISCOVERABLE_CODE);
         }
         else {
-            BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-            Intent discoverableIntent = new Intent(bluetoothAdapter.ACTION_DISCOVERY_FINISHED);
+            Intent discoverableIntent = new Intent(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
             startActivity(discoverableIntent);
         }
     }
