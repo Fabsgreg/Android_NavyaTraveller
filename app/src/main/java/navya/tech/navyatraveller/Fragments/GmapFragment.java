@@ -47,7 +47,9 @@ import org.json.JSONObject;
 
 
 import java.math.BigDecimal;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Hashtable;
 import java.util.List;
 
@@ -114,12 +116,12 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
 
         MainActivity.getSocket().on("Position", onNewShuttlePosition);
         MainActivity.getSocket().on("shuttleDisconnected", onShuttleDisconnected);
-        MainActivity.getSocket().on("journeyAccepted", onJourneyAccepted);
         MainActivity.getSocket().on("journeyCompleted", onJourneyCompleted);
         MainActivity.getSocket().on("journeyRefused", onJourneyRefused);
         MainActivity.getSocket().on("journeyAborted", onJourneyAborted);
         MainActivity.getSocket().on("shuttleUnavailable", onShuttleUnavailable);
         MainActivity.getSocket().on("shuttleArrived", onShuttleArrived);
+        MainActivity.getSocket().on("AndroidMission", onAndroidMission);
     }
 
     @Override
@@ -539,7 +541,7 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
         return ("https://maps.googleapis.com/maps/api/directions/" + output + "?" + origin + destination + params);
     }
 
-    private void DisplayJourneyData() {
+    private void DisplayJourneyData(long waitingTime, long duration, double distance) {
         MainActivity.getSavingResult().setTravelling(true);
 
         // Display the SlidingUpPanel
@@ -549,34 +551,27 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
         ViewGroup.MarginLayoutParams params = (ViewGroup.MarginLayoutParams) mMapView.getLayoutParams();
         params.bottomMargin = (int)convertDpToPixel(68, this.getActivity());
         mMapView.setLayoutParams(params);
-
         params = (ViewGroup.MarginLayoutParams) mFloatingButton.getLayoutParams();
         params.bottomMargin = (int)convertDpToPixel(68, this.getActivity());
         mFloatingButton.setLayoutParams(params);
         mFloatingButton.setImageDrawable(ContextCompat.getDrawable(this.getActivity(), R.drawable.ic_cancel));
 
-        // Get the index of the line selected by user
-        int index = MainActivity.getSavingResult().getIndex();
-
         // Display informations about the journey
-        int waitingTime = 2;
 
         mWaitingTime.setText("" + waitingTime + " min");
-/*        mDistance.setText("" + truncateDecimal(mSavedLine.get(index).getTotalDistance(MainActivity.getSavingResult().getStartStation().getStationName(), MainActivity.getSavingResult().getEndStation().getStationName()), 2) + " km");
-
-        int duration = truncateDouble(mSavedLine.get(index).getTotalDuration(MainActivity.getSavingResult().getStartStation().getStationName(), MainActivity.getSavingResult().getEndStation().getStationName()));
+        mDistance.setText("" + distance + " km");
         mDuration.setText("" + duration + " min");
 
         Calendar now = Calendar.getInstance();
-        now.add(Calendar.MINUTE, (waitingTime + duration));
+        now.add(Calendar.MINUTE, (int)(waitingTime + duration));
         SimpleDateFormat format = new SimpleDateFormat("HH:mm");
         String DateToStr = format.format(now.getTime());
 
         mArrivalTime.setText(DateToStr);
 
         // Display the path associated to the current journey
-        showPath(MainActivity.getSavingResult().getLine().getName(), MainActivity.getSavingResult().getStartStation().getStationName(), MainActivity.getSavingResult().getEndStation().getStationName());
-        */
+        //showPath(MainActivity.getSavingResult().getLine().getName(), MainActivity.getSavingResult().getStartStation().getStationName(), MainActivity.getSavingResult().getEndStation().getStationName());
+
         focusOnPosition();
     }
 
@@ -648,13 +643,8 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
             request.put("start",start);
             request.put("end",end);
             request.put("line", MainActivity.getSavingResult().getLine().getName());
-            //request.put("duration",String.valueOf(data.getTotalDuration(start,end)));
-            //request.put("distance",String.valueOf(data.getTotalDistance(start,end)));
-            request.put("duration",String.valueOf(1));
-            request.put("distance",String.valueOf(1));
             request.put("phone_number", MainActivity.getSavingAccount().getPhoneNumber());
             request.put("bluetooth_address", MainActivity.getSavingAccount().getBluetoothAddress());
-            request.put("state",String.valueOf(1));
 
             MainActivity.getSocket().emit("journeyRequest",request);
         } catch (JSONException e) {
@@ -751,19 +741,6 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
         }
     };
 
-    private Emitter.Listener onJourneyAccepted = new Emitter.Listener() {
-        @Override
-        public void call(final Object... args) {
-            getActivity().runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    DisplayJourneyData();
-                    Toast.makeText(getActivity(),"Journey accepted",Toast.LENGTH_LONG).show();
-                }
-            });
-        }
-    };
-
     private Emitter.Listener onJourneyCompleted = new Emitter.Listener() {
         @Override
         public void call(final Object... args) {
@@ -786,6 +763,33 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
                 @Override
                 public void run() {
                     ShowMyDialog("Info","Your account is blocked, please contact us at developer.navya@gmail.com");
+                }
+            });
+        }
+    };
+
+    private Emitter.Listener onAndroidMission = new Emitter.Listener() {
+        @Override
+        public void call(final Object... args) {
+            getActivity().runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    JSONObject data = (JSONObject) args[0];
+                    String protoData;
+
+                    try {
+                        protoData = data.getString("myData");
+                        AndroidMission mission = AndroidMission.parseFrom(hexStringToByteArray(protoData));
+
+                        DisplayJourneyData(mission.waitingTime, mission.duration, mission.distance);
+                        Toast.makeText(getActivity(),"Journey accepted",Toast.LENGTH_LONG).show();
+                    }
+                    catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+                    catch (java.io.IOException e) {
+                        e.printStackTrace();
+                    }
                 }
             });
         }
