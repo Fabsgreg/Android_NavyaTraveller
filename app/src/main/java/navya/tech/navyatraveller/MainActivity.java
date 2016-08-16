@@ -52,15 +52,19 @@ import navya.tech.navyatraveller.Fragments.GmapFragment;
 import navya.tech.navyatraveller.Fragments.GoFragment;
 import navya.tech.navyatraveller.Fragments.QRcodeFragment;
 
+
+
 /**
  * Created by gregoire.frezet on 24/03/2016.
  */
 
 public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
 
+
     // Global variable
-    public static final String ipAddress = "10.0.5.159";
-    public static final Integer timeout = 10000;      // Timeout for database loading in millisecond
+    private static final String ipAddress = "10.0.5.56";
+    private static final Integer port = 3010;
+    private static final Integer timeout = 10000;            // Timeout for database loading in millisecond
     private static final Float criticalLevel = 20.0F;
 
     // Data saving
@@ -139,9 +143,10 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         // Retrieve phone number
         TelephonyManager tMgr = (TelephonyManager)this.getSystemService(Context.TELEPHONY_SERVICE);
         String myPhoneNumber = tMgr.getLine1Number();
-        if (myPhoneNumber == null) {
+/*        if (myPhoneNumber != "") {
             myPhoneNumber = "0123456789";
-        }
+        }*/
+        myPhoneNumber = "0123456789";
         mSavingAccount.setPhoneNumber(myPhoneNumber);
         mPhoneNumber.setText("Login : "+myPhoneNumber+"");
 
@@ -179,8 +184,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             //opts.reconnection = true;
             opts.secure = true;
             opts.sslContext = sc;
+            mSocket = IO.socket("https://"+MainActivity.ipAddress+":"+port+"",opts);
 
-            mSocket = IO.socket("https://"+MainActivity.ipAddress+":3001",opts);
             mSocket.connect();
             mSocket.on(Socket.EVENT_CONNECT, onConnect);
             mSocket.on(Socket.EVENT_DISCONNECT, onDisconnect);

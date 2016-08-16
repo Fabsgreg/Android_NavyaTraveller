@@ -45,16 +45,17 @@ import com.sothree.slidinguppanel.SlidingUpPanelLayout;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+
 import java.math.BigDecimal;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Hashtable;
 import java.util.List;
+
 
 import navya.tech.navyatraveller.Databases.Line;
 import navya.tech.navyatraveller.Databases.MyDBHandler;
 import navya.tech.navyatraveller.Databases.Station;
+import navya.tech.navyatraveller.General;
 import navya.tech.navyatraveller.HttpConnection;
 import navya.tech.navyatraveller.MainActivity;
 import navya.tech.navyatraveller.GoogleMapsJSONParser;
@@ -67,7 +68,7 @@ import io.socket.emitter.Emitter;
  * Created by gregoire.frezet on 24/03/2016.
  */
 
-public class GmapFragment extends Fragment implements OnMapReadyCallback, LocationListener, View.OnClickListener, GoogleMap.OnMarkerClickListener {
+public class GmapFragment extends Fragment implements OnMapReadyCallback, LocationListener, View.OnClickListener, GoogleMap.OnMarkerClickListener, General {
 
     // Google map
     private MapView mMapView;
@@ -101,6 +102,7 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
     private static final int REQUEST_DISCOVERABLE_CODE = 42;
 
 
+
     //
     ////////////////////////////////////////////////////  View Override /////////////////////////////////////////////////////////
     //
@@ -110,7 +112,7 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
         super.onCreate(savedInstanceState);
         setRetainInstance(true);
 
-        MainActivity.getSocket().on("position", onNewShuttlePosition);
+        MainActivity.getSocket().on("Position", onNewShuttlePosition);
         MainActivity.getSocket().on("shuttleDisconnected", onShuttleDisconnected);
         MainActivity.getSocket().on("journeyAccepted", onJourneyAccepted);
         MainActivity.getSocket().on("journeyCompleted", onJourneyCompleted);
@@ -158,7 +160,7 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
         mFloatingButton.setOnClickListener(this);
 
         mLocationManager =  (LocationManager)getActivity().getSystemService(Context.LOCATION_SERVICE);
-        mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, this);
+        mLocationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 1000, 0, this);
 
         return v;
     }
@@ -404,7 +406,7 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
     @Override
     public void onResume() {
         super.onResume();
-        mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, this);
+        mLocationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 1000, 0, this);
         mMapView.onResume();
     }
 
@@ -560,7 +562,7 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
         int waitingTime = 2;
 
         mWaitingTime.setText("" + waitingTime + " min");
-        mDistance.setText("" + truncateDecimal(mSavedLine.get(index).getTotalDistance(MainActivity.getSavingResult().getStartStation().getStationName(), MainActivity.getSavingResult().getEndStation().getStationName()), 2) + " km");
+/*        mDistance.setText("" + truncateDecimal(mSavedLine.get(index).getTotalDistance(MainActivity.getSavingResult().getStartStation().getStationName(), MainActivity.getSavingResult().getEndStation().getStationName()), 2) + " km");
 
         int duration = truncateDouble(mSavedLine.get(index).getTotalDuration(MainActivity.getSavingResult().getStartStation().getStationName(), MainActivity.getSavingResult().getEndStation().getStationName()));
         mDuration.setText("" + duration + " min");
@@ -574,7 +576,7 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
 
         // Display the path associated to the current journey
         showPath(MainActivity.getSavingResult().getLine().getName(), MainActivity.getSavingResult().getStartStation().getStationName(), MainActivity.getSavingResult().getEndStation().getStationName());
-
+        */
         focusOnPosition();
     }
 
@@ -597,7 +599,7 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
         mFloatingButton.setImageDrawable(ContextCompat.getDrawable(this.getActivity(), R.drawable.ic_directions));
 
         // Display all the line with their associated stations
-        showEverything();
+        //showEverything();
 
         MainActivity.getSavingResult().setTravelling(false);
 
@@ -646,8 +648,10 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
             request.put("start",start);
             request.put("end",end);
             request.put("line", MainActivity.getSavingResult().getLine().getName());
-            request.put("duration",String.valueOf(data.getTotalDuration(start,end)));
-            request.put("distance",String.valueOf(data.getTotalDistance(start,end)));
+            //request.put("duration",String.valueOf(data.getTotalDuration(start,end)));
+            //request.put("distance",String.valueOf(data.getTotalDistance(start,end)));
+            request.put("duration",String.valueOf(1));
+            request.put("distance",String.valueOf(1));
             request.put("phone_number", MainActivity.getSavingAccount().getPhoneNumber());
             request.put("bluetooth_address", MainActivity.getSavingAccount().getBluetoothAddress());
             request.put("state",String.valueOf(1));
@@ -681,7 +685,6 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
 
     private boolean setBluetooth(boolean enable) {
         BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-
         MainActivity.getSavingAccount().setBluetoothAddress(bluetoothAdapter.getAddress());
 
         boolean isEnabled = bluetoothAdapter.isEnabled();
@@ -705,6 +708,16 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
             Intent discoverableIntent = new Intent(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
             startActivity(discoverableIntent);
         }
+    }
+
+    private byte[] hexStringToByteArray(String s) {
+        int len = s.length();
+        byte[] data = new byte[len / 2];
+        for (int i = 0; i < len; i += 2) {
+            data[i / 2] = (byte) ((Character.digit(s.charAt(i), 16) << 4)
+                    + Character.digit(s.charAt(i+1), 16));
+        }
+        return data;
     }
 
     //
@@ -794,29 +807,34 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
     private Emitter.Listener onNewShuttlePosition = new Emitter.Listener() {
         @Override
         public void call(final Object... args) {
+            Log.i("onNewShuttlePosition","");
             getActivity().runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
                     JSONObject data = (JSONObject) args[0];
                     String name;
-                    double lat;
-                    double lng;
+                    String protoData;
+
                     try {
-                        name = data.getString("name");
-                        lat = data.getDouble("lat");
-                        lng= data.getDouble("lng");
+                        name = data.getString("emitter");
+                        protoData = data.getString("myData");
+                        Position pos = Position.parseFrom(hexStringToByteArray(protoData));
 
                         if (mNavyaMarkers.containsKey(name)) {
-                            (mNavyaMarkers.get(name)).setPosition(new LatLng(lat, lng));
+                            (mNavyaMarkers.get(name)).setPosition(new LatLng(pos.lat, pos.lng));
                         }
                         else if (mGoogleMap != null){
                             Marker tmp = mGoogleMap.addMarker(new MarkerOptions()
-                                    .position(new LatLng(lat, lng))
+                                    .position(new LatLng(pos.lat, pos.lng))
                                     .icon(BitmapDescriptorFactory.fromResource(R.mipmap.ic_bus))
                                     .title(name));
                             mNavyaMarkers.put(name,tmp);
                         }
-                    } catch (JSONException e) {
+                    }
+                    catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+                    catch (java.io.IOException e) {
                         e.printStackTrace();
                     }
                 }

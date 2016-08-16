@@ -53,19 +53,19 @@ public class MyDBHandler extends SQLiteOpenHelper {
     //
 
     @Override
-    public void onCreate(SQLiteDatabase db) {
-        db.execSQL(SQL_CREATE_TABLE_LINES);
-        db.execSQL(SQL_CREATE_TABLE_STATIONS);
+    public void onCreate(SQLiteDatabase _db) {
+        _db.execSQL(SQL_CREATE_TABLE_LINES);
+        _db.execSQL(SQL_CREATE_TABLE_STATIONS);
     }
 
     @Override
-    public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
+    public void onUpgrade(SQLiteDatabase _db, int oldVersion, int newVersion) {
         // clear all data
-        db.execSQL("DROP TABLE IF EXISTS " + TABLE_LINES);
-        db.execSQL("DROP TABLE IF EXISTS " + TABLE_STATIONS);
+        _db.execSQL("DROP TABLE IF EXISTS " + TABLE_LINES);
+        _db.execSQL("DROP TABLE IF EXISTS " + TABLE_STATIONS);
 
         // recreate the tables
-        onCreate(db);
+        onCreate(_db);
     }
 
     //
@@ -85,6 +85,7 @@ public class MyDBHandler extends SQLiteOpenHelper {
 
         // recreate the tables
         onCreate(db);
+        db.close();
     }
 
     /////// Line //////////
