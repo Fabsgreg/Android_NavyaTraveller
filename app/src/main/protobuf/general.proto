@@ -12,11 +12,10 @@
 
 syntax="proto3";
 
-option java_package = "navya.tech.navyatraveller";
-option java_outer_classname = "General";
 
 ////////// Android ///////////////
 
+option java_package = "navya.tech.navyatraveller";
 
 message Position
 {
@@ -26,17 +25,18 @@ message Position
 
 message AndroidMission
 {
-    repeated    Position    path            = 1;
-                uint64      duration        = 2;    // min
-                uint64      waiting_time    = 3;    // min
-                double      distance        = 4;    // km
+    repeated    Position    path            	= 1;
+                uint64      duration        	= 2;    // min
+                uint64      waiting_time    	= 3;    // min
+                double      distance        	= 4;    // km
 }
 
 message onDemandMission
 {
-    string client = 1;
-    string start = 2;
-    string end   = 3;
+    string 	client 				= 1;
+    string 	start 				= 2; 
+    string 	end   				= 3;
+	string	bluetooth_address 	= 4;
 }
 
 

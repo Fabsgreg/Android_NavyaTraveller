@@ -8,6 +8,7 @@ import android.content.Intent;
 import android.content.res.Resources;
 import android.graphics.Color;
 import android.location.Location;
+import android.os.Vibrator;
 
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -102,7 +103,6 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
 
     // Bluetooth
     private static final int REQUEST_DISCOVERABLE_CODE = 42;
-
 
 
     //
@@ -557,7 +557,6 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
         mFloatingButton.setImageDrawable(ContextCompat.getDrawable(this.getActivity(), R.drawable.ic_cancel));
 
         // Display informations about the journey
-
         mWaitingTime.setText("" + waitingTime + " min");
         mDistance.setText("" + distance + " km");
         mDuration.setText("" + duration + " min");
@@ -801,8 +800,14 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
             getActivity().runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    (mNavyaMarkers.get(args[0])).remove();
-                    mNavyaMarkers.remove(args[0]);
+                    try {
+                        JSONObject data = (JSONObject) args[0];
+                        (mNavyaMarkers.get(data.getString("myData"))).remove();
+                        mNavyaMarkers.remove(data.getString("myData"));
+                    }
+                    catch (JSONException e) {
+                        e.printStackTrace();
+                    }
                 }
             });
         }
@@ -853,6 +858,10 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
                 @Override
                 public void run() {
                     Toast.makeText(getActivity(),"Your shuttle has arrived, please get on",Toast.LENGTH_LONG).show();
+
+                    Vibrator v = (Vibrator) getActivity().getApplicationContext().getSystemService(Context.VIBRATOR_SERVICE);
+                    // Vibrate for 500 milliseconds
+                    v.vibrate(500);
                 }
             });
         }
