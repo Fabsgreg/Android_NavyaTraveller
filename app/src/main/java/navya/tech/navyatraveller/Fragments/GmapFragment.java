@@ -71,6 +71,7 @@ import navya.tech.navyatraveller.R;
 import navya.tech.navyatraveller.SavingLine;
 
 import io.socket.emitter.Emitter;
+import navya.tech.navyatraveller.SavingResult;
 
 /**
  * Created by gregoire.frezet on 24/03/2016.
@@ -523,35 +524,36 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
 
                         if (currentLocation.distanceTo(loc) < MainActivity.minDist) {
                             isNearCurrentLocation = true;
+                            break;
                         }
                     }
 
-                    if (isNearCurrentLocation) {
-                        for (Station s : allStations) {
-                            mStationMarkers.put(s.getStationName(),mGoogleMap.addMarker(new MarkerOptions()
-                                    .icon(BitmapDescriptorFactory.defaultMarker(colorMarker))
-                                    .title(s.getLine().getName())
-                                    .snippet(s.getStationName())
-                                    .position(new LatLng(s.getLat(), s.getLng()))));
+                    for (Station s : allStations) {
+                        if (isNearCurrentLocation) {
+                            if (mStationMarkers.containsKey(s.getStationName())) {
+                                mStationMarkers.get(s.getStationName()).setVisible(true);
+                            }
+                            else {
+                                mStationMarkers.put(s.getStationName(),mGoogleMap.addMarker(new MarkerOptions()
+                                        .icon(BitmapDescriptorFactory.defaultMarker(colorMarker))
+                                        .title(s.getLine().getName())
+                                        .snippet(s.getStationName())
+                                        .position(new LatLng(s.getLat(), s.getLng()))));
+                            }
                         }
-                    }
-                    else {
-                        for (Station s : allStations) {
+                        else {
                             if (mStationMarkers.containsKey(s.getStationName())) {
                                 mStationMarkers.get(s.getStationName()).setVisible(false);
                             }
                         }
                     }
                 }
-                colorMarker += 30;
             }
         }
     }
 
     private void focusOnPosition () {
         if (currentLocation != null) {
-            showNearStations(currentLocation);
-
             if (MainActivity.getSavingResult().getTravelling()) {
                 double lat = currentLocation.getLatitude();
                 double lng = currentLocation.getLongitude();
@@ -567,28 +569,10 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
                 // Animate the change in camera view over 2 seconds
                 mGoogleMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition), 2000, null);
             }
-        }
-    }
-
-    private String getMapsApiDirectionsUrl( List<Station> myStations) {
-        String waypoints = "waypoints=optimize:true";
-        int count = myStations.size();
-
-        for (int i = 0; i < count; i++) {
-            if (i == (count-1)) {
-                waypoints += "|" + myStations.get(i).getLat() + "," + myStations.get(i).getLng();
-            }
             else {
-                waypoints += "|" + myStations.get(i).getLat() + "," + myStations.get(i).getLng()  + "|";
+                showNearStations(currentLocation);
             }
         }
-
-        String origin = "origin=" + myStations.get(0).getLat() + "," + myStations.get(0).getLng() + "&";
-        String destination = "destination=" + myStations.get(0).getLat() + "," + myStations.get(0).getLng() + "&";
-        String sensor = "sensor=false";
-        String params = waypoints + "&" + sensor;
-        String output = "json";
-        return ("https://maps.googleapis.com/maps/api/directions/" + output + "?" + origin + destination + params);
     }
 
     private void DisplayJourneyData(long waitingTime, long duration, double distance) {
