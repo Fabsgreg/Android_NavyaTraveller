@@ -1,6 +1,7 @@
 package navya.tech.navyatraveller.Fragments;
 
 import android.bluetooth.BluetoothAdapter;
+import android.support.annotation.NonNull;
 import android.support.v4.app.Fragment;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -10,7 +11,6 @@ import android.graphics.Color;
 import android.location.Location;
 import android.os.Vibrator;
 
-import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -28,6 +28,11 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.location.LocationListener;
+import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapView;
@@ -71,15 +76,16 @@ import io.socket.emitter.Emitter;
  * Created by gregoire.frezet on 24/03/2016.
  */
 
-public class GmapFragment extends Fragment implements OnMapReadyCallback, LocationListener, View.OnClickListener, GoogleMap.OnMarkerClickListener, General {
+public class GmapFragment extends Fragment implements OnMapReadyCallback, LocationListener, View.OnClickListener, GoogleMap.OnMarkerClickListener, General, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
 
     // Google map
     private MapView mMapView;
     private GoogleMap mGoogleMap;
-    private LocationManager mLocationManager;
     private Hashtable<String, Marker> mNavyaMarkers;
     private Hashtable<String, Marker> mStationMarkers;
     private Hashtable<String, Polyline> mLines;
+    private GoogleApiClient mGoogleApiClient;
+    private Location currentLocation;
     
     // Layout
     private TextView mArrivalTime;
@@ -108,6 +114,7 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
     //
     ////////////////////////////////////////////////////  View Override /////////////////////////////////////////////////////////
     //
+
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -161,8 +168,12 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
         mFloatingButton = (FloatingActionButton) v.findViewById(R.id.fab);
         mFloatingButton.setOnClickListener(this);
 
-        mLocationManager =  (LocationManager)getActivity().getSystemService(Context.LOCATION_SERVICE);
-        mLocationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 1000, 0, this);
+        mGoogleApiClient = new GoogleApiClient.Builder(getActivity())
+                .addConnectionCallbacks(this)
+                .addOnConnectionFailedListener(this)
+                .addApi(LocationServices.API)
+                .build();
+        mGoogleApiClient.connect();
 
         return v;
     }
@@ -321,9 +332,32 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
         }
     }
 
+
     //
     ////////////////////////////////////////////////////  Google Map Override /////////////////////////////////////////////////////////
     //
+
+    @Override
+    public void onConnected(Bundle connectionHint) {
+        Location mLastLocation = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
+        if (mLastLocation != null) {
+            LatLng coordinate = new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude());
+            CameraPosition cameraPosition;
+            cameraPosition = CameraPosition.builder()
+                    .target(coordinate)
+                    .zoom(15)
+                    .tilt(0)
+                    .build();
+            // Animate the change in camera view over 2 seconds
+            mGoogleMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition), 2000, null);
+        }
+        startLocationUpdates();
+    }
+
+    @Override
+    public void onConnectionSuspended(int i) {
+
+    }
 
     @Override
     public void onMapReady(GoogleMap googleMap) {
@@ -339,30 +373,6 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
         mGoogleMap.setOnMarkerClickListener(this);
 
         focusOnPosition();
-
-        List<Station> myStations;
-        List<Line> myLines;
-
-        float colorMarker = 0.0F;
-        myLines = mDBHandler.getAllLines();
-        if (myLines != null && !myLines.isEmpty()) {
-            for (Line e : myLines) {
-                myStations = mDBHandler.getStationsOfLine(e.getName());
-                if (myStations != null && !myStations.isEmpty()) {
-                    for (Station s : myStations) {
-                        mStationMarkers.put(s.getStationName(),mGoogleMap.addMarker(new MarkerOptions()
-                                                                        .icon(BitmapDescriptorFactory.defaultMarker(colorMarker))
-                                                                        .title(s.getLine().getName())
-                                                                        .snippet(s.getStationName())
-                                                                        .position(new LatLng(s.getLat(), s.getLng()))));
-                    }
-                    String url = getMapsApiDirectionsUrl(myStations);
-                    ReadTask downloadTask = new ReadTask();
-                    downloadTask.execute(url,e.getName());
-                }
-                colorMarker += 30;
-            }
-        }
     }
 
     @Override
@@ -393,33 +403,29 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
 
     @Override
     public void onLocationChanged(Location location) {
+        currentLocation = location;
         focusOnPosition();
     }
 
     @Override
-    public void onProviderDisabled(String provider){}
-
-    @Override
-    public void onProviderEnabled(String provider){}
-
-    @Override
-    public void onStatusChanged(String provider, int status, Bundle extras) {}
-
-    @Override
     public void onResume() {
         super.onResume();
-        mLocationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 1000, 0, this);
+        if (mGoogleApiClient.isConnected()) {
+            startLocationUpdates();
+        }
         mMapView.onResume();
     }
 
     @Override
     public void onPause() {
+        LocationServices.FusedLocationApi.removeLocationUpdates(mGoogleApiClient, this);
         super.onPause();
         mMapView.onPause();
     }
 
     @Override
     public void onDestroy() {
+        mGoogleApiClient.disconnect();
         super.onDestroy();
         mMapView.onDestroy();
     }
@@ -439,6 +445,13 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
     //
     ////////////////////////////////////////////////////  Google Map functions   /////////////////////////////////////////////////////////
     //
+    private void startLocationUpdates() {
+        LocationRequest mLocationRequest = new LocationRequest();
+        mLocationRequest.setInterval(10000);
+        mLocationRequest.setFastestInterval(5000);
+        mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+        LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
+    }
 
     private void hideAllMarkers() {
         for (Marker m : mStationMarkers.values()) {
@@ -490,33 +503,70 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
         }
     }
 
-    private void focusOnPosition () {
-        Location location = mLocationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+    private void showNearStations (Location currentLocation) {
+        List<Station> allStations;
+        List<Line> allLines;
 
-        if (location != null) {
-            double lat = location.getLatitude();
-            double lng = location.getLongitude();
-            LatLng coordinate = new LatLng(lat, lng);
-            CameraPosition cameraPosition;
+        float colorMarker = 0.0F;
+        allLines = mDBHandler.getAllLines();
+        if (allLines != null && !allLines.isEmpty()) {
+            for (Line e : allLines) {
+                allStations = mDBHandler.getStationsOfLine(e.getName());
+                if (allStations != null && !allStations.isEmpty()) {
+                    boolean isNearCurrentLocation = false;
+
+                    // Find near stations
+                    for (Station s : allStations) {
+                        Location loc = new Location("");
+                        loc.setLatitude(s.getLat());
+                        loc.setLongitude(s.getLng());
+
+                        if (currentLocation.distanceTo(loc) < MainActivity.minDist) {
+                            isNearCurrentLocation = true;
+                        }
+                    }
+
+                    if (isNearCurrentLocation) {
+                        for (Station s : allStations) {
+                            mStationMarkers.put(s.getStationName(),mGoogleMap.addMarker(new MarkerOptions()
+                                    .icon(BitmapDescriptorFactory.defaultMarker(colorMarker))
+                                    .title(s.getLine().getName())
+                                    .snippet(s.getStationName())
+                                    .position(new LatLng(s.getLat(), s.getLng()))));
+                        }
+                    }
+                    else {
+                        for (Station s : allStations) {
+                            if (mStationMarkers.containsKey(s.getStationName())) {
+                                mStationMarkers.get(s.getStationName()).setVisible(false);
+                            }
+                        }
+                    }
+                }
+                colorMarker += 30;
+            }
+        }
+    }
+
+    private void focusOnPosition () {
+        if (currentLocation != null) {
+            showNearStations(currentLocation);
 
             if (MainActivity.getSavingResult().getTravelling()) {
+                double lat = currentLocation.getLatitude();
+                double lng = currentLocation.getLongitude();
+                LatLng coordinate = new LatLng(lat, lng);
+                CameraPosition cameraPosition;
+
                 cameraPosition = CameraPosition.builder()
                         .target(coordinate)
                         .zoom(20)
                         .tilt(70)
                         .build();
-            }
-            else {
-                cameraPosition = CameraPosition.builder()
-                        .target(coordinate)
-                        .zoom(15)
-                        .tilt(0)
-                        .build();
-            }
 
-            // Animate the change in camera view over 2 seconds
-            mGoogleMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition),
-                    2000, null);
+                // Animate the change in camera view over 2 seconds
+                mGoogleMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition), 2000, null);
+            }
         }
     }
 
@@ -866,6 +916,11 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
             });
         }
     };
+
+    @Override
+    public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
+
+    }
 
 
     //
