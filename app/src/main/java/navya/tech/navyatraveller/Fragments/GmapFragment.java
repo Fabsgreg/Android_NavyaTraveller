@@ -11,7 +11,6 @@ import android.graphics.Color;
 import android.location.Location;
 import android.os.Vibrator;
 
-import android.location.LocationManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
@@ -71,7 +70,6 @@ import navya.tech.navyatraveller.R;
 import navya.tech.navyatraveller.SavingLine;
 
 import io.socket.emitter.Emitter;
-import navya.tech.navyatraveller.SavingResult;
 
 /**
  * Created by gregoire.frezet on 24/03/2016.
@@ -84,6 +82,8 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
     private GoogleMap mGoogleMap;
     private Hashtable<String, Marker> mNavyaMarkers;
     private Hashtable<String, Marker> mStationMarkers;
+    private Polyline mPath;
+
     private Hashtable<String, Polyline> mLines;
     private GoogleApiClient mGoogleApiClient;
     private Location currentLocation;
@@ -283,20 +283,18 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
                 Toast.makeText(getActivity(),"Bluetooth connection will be disabled after your journey",Toast.LENGTH_LONG).show();
 
                 // Show the QRcode camera window if it hasn't been scanned before
+                if (MainActivity.bypassQRcode){
+                    createRequestOnServer();
+                    MainActivity.getSavingResult().setStationScanned("");
+                    return;
+                }
+
+
                 if ( !MainActivity.getSavingResult().getStationScanned().equalsIgnoreCase(MainActivity.getSavingResult().getStartStation().getStationName()) ) {
                     IntentIntegrator.forSupportFragment(this).setPrompt("Please, scan the QR code near you to complete your order").initiateScan();
                 }
                 else {
-                    // Get the index of the line selected by user
-                    int index = -1;
-                    for (int i=0; i < mSavedLine.size(); i++){
-                        if (mSavedLine.get(i).getLineName().equalsIgnoreCase(MainActivity.getSavingResult().getLine().getName())) {
-                            index = i;
-                            MainActivity.getSavingResult().setCurrentIndexOfSavedLine(index);
-                            break;
-                        }
-                    }
-                    createRequestOnServer(mSavedLine.get(index));
+                    createRequestOnServer();
                     MainActivity.getSavingResult().setStationScanned("");
                 }
             }
@@ -312,18 +310,7 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
                 String scanContent = scanningResult.getContents();
 
                 if (scanContent.equalsIgnoreCase(MainActivity.getSavingResult().getStartStation().getStationName())) {
-
-                    // Get the index of the line selected by user
-                    int index = -1;
-                    for (int i=0; i < mSavedLine.size(); i++){
-                        if (mSavedLine.get(i).getLineName().equalsIgnoreCase(MainActivity.getSavingResult().getLine().getName())) {
-                            index = i;
-                            MainActivity.getSavingResult().setCurrentIndexOfSavedLine(index);
-                            break;
-                        }
-                    }
-                    createRequestOnServer(mSavedLine.get(index));
-                    //return;
+                    createRequestOnServer();
                 }
                 else {
                     ShowMyDialog("Error","You've scanned the wrong code, please try again");
@@ -340,18 +327,7 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
 
     @Override
     public void onConnected(Bundle connectionHint) {
-        Location mLastLocation = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
-        if (mLastLocation != null) {
-            LatLng coordinate = new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude());
-            CameraPosition cameraPosition;
-            cameraPosition = CameraPosition.builder()
-                    .target(coordinate)
-                    .zoom(15)
-                    .tilt(0)
-                    .build();
-            // Animate the change in camera view over 2 seconds
-            mGoogleMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition), 2000, null);
-        }
+        focusOnLastLocation();
         startLocationUpdates();
     }
 
@@ -446,6 +422,22 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
     //
     ////////////////////////////////////////////////////  Google Map functions   /////////////////////////////////////////////////////////
     //
+
+    private void focusOnLastLocation() {
+        Location mLastLocation = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
+        if (mLastLocation != null) {
+            LatLng coordinate = new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude());
+            CameraPosition cameraPosition;
+            cameraPosition = CameraPosition.builder()
+                    .target(coordinate)
+                    .zoom(15)
+                    .tilt(0)
+                    .build();
+            // Animate the change in camera view over 2 seconds
+            mGoogleMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition), 2000, null);
+        }
+    }
+
     private void startLocationUpdates() {
         LocationRequest mLocationRequest = new LocationRequest();
         mLocationRequest.setInterval(10000);
@@ -453,6 +445,8 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
         mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
         LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
     }
+
+    ///////////////////// DEPRECATED /////////////////////////
 
     private void hideAllMarkers() {
         for (Marker m : mStationMarkers.values()) {
@@ -504,6 +498,8 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
         }
     }
 
+    //////////////////////////////////////////////////////////////////
+
     private void showNearStations (Location currentLocation) {
         List<Station> allStations;
         List<Line> allLines;
@@ -550,6 +546,24 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
                 }
             }
         }
+    }
+
+    private void showPath() {
+        hideAllMarkers();
+
+        //String startStation = MainActivity.getSavingResult().getStartStation().getStationName();
+        //String endStation = MainActivity.getSavingResult().getEndStation().getStationName();
+
+        // Debug
+        String startStation = "BEIT Sud";
+        String endStation = "BEAT";
+
+        mStationMarkers.get(startStation).setVisible(true);
+        mStationMarkers.get(endStation).setVisible(true);
+    }
+
+    private void hidePath() {
+        mPath.remove();
     }
 
     private void focusOnPosition () {
@@ -605,6 +619,8 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
         // Display the path associated to the current journey
         //showPath(MainActivity.getSavingResult().getLine().getName(), MainActivity.getSavingResult().getStartStation().getStationName(), MainActivity.getSavingResult().getEndStation().getStationName());
 
+        showPath();
+
         focusOnPosition();
     }
 
@@ -629,7 +645,12 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
         // Display all the line with their associated stations
         //showEverything();
 
+        // Hide the journey path
+        hidePath();
+
         MainActivity.getSavingResult().setTravelling(false);
+
+        focusOnLastLocation();
 
         focusOnPosition();
     }
@@ -666,7 +687,7 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
         }
     }
 
-    private void createRequestOnServer (final SavingLine data) {
+    private void createRequestOnServer () {
 
         JSONObject request = new JSONObject();
         try {
@@ -813,6 +834,20 @@ public class GmapFragment extends Fragment implements OnMapReadyCallback, Locati
                     try {
                         protoData = data.getString("myData");
                         AndroidMission mission = AndroidMission.parseFrom(hexStringToByteArray(protoData));
+
+                        PolylineOptions polyLineOptions = new PolylineOptions();
+                        polyLineOptions.width(25);
+                        polyLineOptions.color(Color.RED);
+
+                        // polyLineOptions.add(new LatLng(MainActivity.getSavingResult().getStartStation().getLat(),MainActivity.getSavingResult().getStartStation().getLng()));
+                        polyLineOptions.add(new LatLng(46.4553, 0.6505));
+                        for (Position p : mission.path) {
+                            polyLineOptions.add(new LatLng(p.lat,p.lng));
+                        }
+                        polyLineOptions.add(new LatLng(46.4517, 0.6517));
+                        //polyLineOptions.add(new LatLng(MainActivity.getSavingResult().getEndStation().getLat(),MainActivity.getSavingResult().getEndStation().getLng()));
+
+                        mPath = mGoogleMap.addPolyline(polyLineOptions);
 
                         DisplayJourneyData(mission.waitingTime, mission.duration, mission.distance);
                         Toast.makeText(getActivity(),"Journey accepted",Toast.LENGTH_LONG).show();

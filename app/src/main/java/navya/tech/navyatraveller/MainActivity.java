@@ -67,6 +67,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private static final Integer timeout = 10000;            // Timeout for database loading in millisecond
     private static final Float criticalLevel = 20.0F;
     public static final Integer minDist = 2000; // Meter
+    public static final Boolean bypassQRcode = true; // Meter
 
     // Data saving
     private static SavingResult mSavingResult;
