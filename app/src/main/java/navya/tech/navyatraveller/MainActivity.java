@@ -62,8 +62,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
 
     // Global variable
-    private static final String ipAddress = "10.0.5.56";
-    private static final Integer port = 3010;
+    private static final String ipAddress = "52.16.86.8";
+    private static final Integer port = 3001;
     private static final Integer timeout = 10000;            // Timeout for database loading in millisecond
     private static final Float criticalLevel = 20.0F;
     public static final Integer minDist = 2000; // Meter
