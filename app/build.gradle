@@ -8,7 +8,7 @@ android {
 
     sourceSets {
         main {
-            java.srcDirs += 'build/generated/source/proto/debug/javanano/navya/tech/navyatraveller'
+            java.srcDirs += 'build/generated/source/proto/release/javanano/navya/tech/navyatraveller'
             proto {
                 srcDir 'src/main/protobuf'
             }
@@ -25,6 +25,11 @@ android {
         // Enabling multidex support.
         multiDexEnabled true
     }
+
+    dexOptions {
+        javaMaxHeapSize "4g"
+    }
+
     buildTypes {
         release {
             minifyEnabled false
